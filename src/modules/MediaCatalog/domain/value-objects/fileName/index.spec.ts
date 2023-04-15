@@ -1,20 +1,14 @@
-import { TitleValueObject } from "."
+import { Result } from "#ddd/result"
+import { FileNameValueObject } from "."
 
-describe('TitleValueObject', () => {
-
+describe('fileNameValueObject', () => {
 	// beforeAll(() => {
 	// 	MediaTitleMock = MediaTitle
 	// })
 
   it('should return a valid title value object', () => {
-		const titleOrError: TitleValueObject | Error = TitleValueObject.create('Bob Esponja')
-		if (titleOrError && titleOrError.value)
-   	 expect(titleOrError.value).toEqual('Bob Esponja')
+		const fileNameOrError: Result<FileNameValueObject> = FileNameValueObject.create('Bob Esponja')
+		expect(fileNameOrError.result.value).toEqual('Bob Esponja')
 	})
-
-  // it('should create storage/validated folders', () => {
-	// 	const validatedFolderExists = fs.existsSync(MediaTitle.validatedFolderPath)
-  //   expect(validatedFolderExists).toBeTruthy()
-	// })
 
 })

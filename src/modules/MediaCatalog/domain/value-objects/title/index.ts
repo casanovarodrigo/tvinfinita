@@ -1,6 +1,6 @@
-import { Either, left, right } from "#ddd/either"
 import { BaseError } from "#ddd/primitives/base-error"
 import { ValueObject } from "#ddd/primitives/value-object"
+import { Result } from "#ddd/result"
 import * as Joi from "joi"
 
 interface ITitleValueObject {
@@ -29,12 +29,12 @@ export class TitleValueObject extends ValueObject<ITitleValueObject> {
     return schema.validate(title, { abortEarly: false })
   }
 
-  public static create(title: string): Either<BaseError, TitleValueObject> {
+  public static create(title: string): Result<TitleValueObject> {
     const titleOrError = this.validate(title)
     if (titleOrError.error){
-      return left(new BaseError('TitleValueObject test error'))
+      return Result.fail(new BaseError('TitleValueObject test error'))
     }
 
-    return right(new TitleValueObject({value: title}))
+    return Result.ok(new TitleValueObject({value: title}))
   }
 }

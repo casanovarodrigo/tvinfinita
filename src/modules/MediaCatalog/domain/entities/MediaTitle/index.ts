@@ -1,5 +1,5 @@
-import { Playlist } from "./Playlist"
-import { SubMedia } from "./SubMedia"
+import { Playlist } from "../Playlist"
+
 
 export interface IMediaTitle {
 	title: string

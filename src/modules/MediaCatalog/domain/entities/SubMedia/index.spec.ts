@@ -14,7 +14,7 @@ describe('MediaTitle', () => {
 
   it('should return one single media entity without mediaName', () => {
 		const SubMediaOrError = SubMedia.create(singleSubMediaInfo)
-		const SingleSubMediaInstance = unsafelyUnfurlEither(SubMediaOrError)
+		const SingleSubMediaInstance = SubMediaOrError.result
     expect(SingleSubMediaInstance.DTO).toEqual(singleSubMediaInfo)
 	})
 
@@ -24,7 +24,7 @@ describe('MediaTitle', () => {
 			mediaName: 'Test name'
 		}
 		const SubMediaOrError = SubMedia.create(infoToUse)
-		const SingleSubMediaInstanceWithName = unsafelyUnfurlEither(SubMediaOrError)
+		const SingleSubMediaInstanceWithName = SubMediaOrError.result
     expect(SingleSubMediaInstanceWithName.DTO).toEqual(infoToUse)
 	})
 

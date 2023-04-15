@@ -1,6 +1,6 @@
-import { Either, left, right } from "#ddd/either"
 import { BaseError } from "#ddd/primitives/base-error"
 import { ValueObject } from "#ddd/primitives/value-object"
+import { Result } from "#ddd/result"
 import * as Joi from "joi"
 
 interface IFileNameValueObject {
@@ -29,12 +29,12 @@ export class FileNameValueObject extends ValueObject<IFileNameValueObject> {
     return schema.validate(fileName, { abortEarly: false })
   }
 
-  public static create(fileName: string): Either<BaseError, FileNameValueObject> {
+  public static create(fileName: string): Result<FileNameValueObject> {
     const titleOrError = this.validate(fileName)
     if (titleOrError.error){
-      return left(new BaseError('FileNameValueObject test error'))
+      return Result.fail(new BaseError('FileNameValueObject test error'))
     }
 
-    return right(new FileNameValueObject({value: fileName}))
+    return Result.ok(new FileNameValueObject({value: fileName}))
   }
 }

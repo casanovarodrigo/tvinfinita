@@ -3,6 +3,7 @@ import { BaseError } from "#ddd/primitives/base-error"
 import { TitleValueObject } from "#modules/MediaCatalog/domain/value-objects/title"
 import { FileNameValueObject } from "#modules/MediaCatalog/domain/value-objects/fileName"
 import { ISubMediaDTO } from "./interfaces"
+import { Result } from "#ddd/result"
 
 export class SubMedia {
 	public readonly fileName: FileNameValueObject
@@ -23,19 +24,24 @@ export class SubMedia {
     Object.freeze(this)
   }
 
-	static create(SubMediaData: ISubMediaDTO): Either<BaseError, SubMedia> {
+	static create(SubMediaData: ISubMediaDTO): Result<SubMedia> {
     const mediaNameOrError = TitleValueObject.create(SubMediaData.mediaName)
     const fileNameOrError = FileNameValueObject.create(SubMediaData.fileName)
 
-    if (mediaNameOrError.isLeft()) return left(mediaNameOrError.error)
-    if (fileNameOrError.isLeft()) return left(fileNameOrError.error)
+    const combinedResult = Result.combine([
+      mediaNameOrError,
+      fileNameOrError
+    ])
+    if (combinedResult.isFailure){
+      throw new BaseError('combinedResult error test')
+    }
 
     const fileName: FileNameValueObject = fileNameOrError.result
     const mediaName: TitleValueObject = mediaNameOrError.result
     const filePath: string = SubMediaData.filePath
     const fileFormat: string = SubMediaData.fileFormat
 
-    return right(new SubMedia(fileName, filePath, mediaName, fileFormat))
+    return Result.ok(new SubMedia(fileName, filePath, mediaName, fileFormat))
   }
 
   get DTO(): ISubMediaDTO {

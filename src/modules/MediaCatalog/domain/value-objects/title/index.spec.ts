@@ -7,9 +7,14 @@ describe('TitleValueObject', () => {
 	// })
 
   it('should return a valid title value object', () => {
-		const titleOrError: TitleValueObject | Error = TitleValueObject.create('Bob Esponja')
-		if (titleOrError && titleOrError.value)
-   	 expect(titleOrError.value).toEqual('Bob Esponja')
+		const titleOrError = TitleValueObject.create('Bob Esponja')
+		if (titleOrError.isSuccess)
+   		expect(titleOrError.result.value).toEqual('Bob Esponja')
+	})
+	
+	it('should return a valid title value object', () => {
+		const titleOrError = TitleValueObject.create('Bob Esponja')
+		expect(titleOrError.result.value).toEqual('Bob Esponja')
 	})
 
   // it('should create storage/validated folders', () => {

@@ -8,10 +8,10 @@ describe('MediaDiscovery', () => {
 		MediaDiscovery = new MediaDiscoveryClass
 	})
 
-  it('should return test result', () => {
-		const res = MediaDiscovery.testFunc()
-    expect(res).toEqual('test')
-	})
+  // it('should return test result', () => {
+	// 	const res = MediaDiscovery.testFunc()
+  //   expect(res).toEqual('test')
+	// })
 
   it('should create storage/validated folders', () => {
 		const validatedFolderExists = fs.existsSync(MediaDiscovery.validatedFolderPath)

@@ -1,8 +1,8 @@
 export class Result<T> {
-  public isSuccess: boolean;
-  public isFailure: boolean;
-  public error: T | string;
-  private _value: T;
+  public readonly isSuccess: boolean;
+  public readonly isFailure: boolean;
+  private readonly _error: T | string;
+  private readonly _value: T;
 
   constructor(isSuccess: boolean, error?: T | string, value?: T) {
     if (isSuccess && error) {
@@ -18,15 +18,14 @@ export class Result<T> {
 
     this.isSuccess = isSuccess;
     this.isFailure = !isSuccess;
-    this.error = error;
+    this._error = error;
     this._value = value;
-
     Object.freeze(this);
   }
 
-  getValue(): T {
+  get result(): T {
     if (!this.isSuccess) {
-      console.log(this.error);
+      console.log(this._error);
 
       throw new Error(
         "Can't get the value of an error result. Use 'errorValue' instead."
@@ -36,8 +35,8 @@ export class Result<T> {
     return this._value;
   }
 
-  errorValue(): T {
-    return this.error as T;
+  get error(): T {
+    return this._error as T;
   }
 
   static ok<U>(value?: U): Result<U> {
@@ -59,7 +58,7 @@ export class Result<T> {
 export type Either<L, A> = Failure<L, A> | Success<L, A>;
 
 export class Failure<L, A> {
-  readonly value: L;
+  private readonly value: L;
 
   constructor(value: L) {
     this.value = value;
@@ -75,7 +74,7 @@ export class Failure<L, A> {
 }
 
 export class Success<L, A> {
-  readonly value: A;
+  private readonly value: A;
 
   constructor(value: A) {
     this.value = value;

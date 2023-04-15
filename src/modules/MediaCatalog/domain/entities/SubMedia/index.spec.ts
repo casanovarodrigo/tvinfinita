@@ -1,0 +1,31 @@
+import { unsafelyUnfurlEither } from "#test/shared"
+import { SubMedia } from "."
+
+describe('MediaTitle', () => {
+
+	const singleSubMediaInfo = {
+		fileName: 'S01E02',
+		filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja/Temporada 1/',
+		fileFormat: '.avi'
+	}
+
+	// beforeAll(() => {
+	// })
+
+  it('should return one single media entity without mediaName', () => {
+		const SubMediaOrError = SubMedia.create(singleSubMediaInfo)
+		const SingleSubMediaInstance = unsafelyUnfurlEither(SubMediaOrError)
+    expect(SingleSubMediaInstance.DTO).toEqual(singleSubMediaInfo)
+	})
+
+  it('should return one single media entity without mediaName', () => {
+		const infoToUse = {
+			...singleSubMediaInfo,
+			mediaName: 'Test name'
+		}
+		const SubMediaOrError = SubMedia.create(infoToUse)
+		const SingleSubMediaInstanceWithName = unsafelyUnfurlEither(SubMediaOrError)
+    expect(SingleSubMediaInstanceWithName.DTO).toEqual(infoToUse)
+	})
+
+})

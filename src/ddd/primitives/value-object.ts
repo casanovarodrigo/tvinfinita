@@ -1,0 +1,19 @@
+interface ValueObjectProps {
+  [index: string]: any
+}
+
+/**
+ * @desc ValueObjects are objects that have their
+ * @desc own methods or validation designed "equally"
+ */
+export abstract class ValueObject<T extends ValueObjectProps> {
+  public readonly props: T
+
+  constructor(props: T) {
+    this.props = props
+  }
+
+  get value(): any {
+    return this.props.value
+  }
+}

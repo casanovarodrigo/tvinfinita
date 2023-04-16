@@ -1,28 +1,29 @@
-import { BaseError } from "#ddd/primitives/base-error"
 import { ValueObject } from "#ddd/primitives/value-object"
 import { Result } from "#ddd/result"
 import * as Joi from "joi"
+import { InvalidTitle } from "#mediaCatalog/domain/errors/title.value-object"
+import { BaseError } from "#ddd/primitives/base-error"
 
 interface ITitleValueObject {
   value: string
 }
 
-export const titleMinCharCount = 3
-export const titleMaxCharCount = 50
-
 export class TitleValueObject extends ValueObject<ITitleValueObject> {
+  static minCharCount: number = 3
+  static maxCharCount: number = 50
+
   private constructor(props: ITitleValueObject) {
     super(props)
   }
 
   private static validate(title: string) {
     const schema = Joi.string()
-      .min(titleMinCharCount)
-      .max(titleMaxCharCount)
+      .min(this.minCharCount)
+      .max(this.maxCharCount)
       .messages({
-        'string.empty': `${title} cannot be an empty field`,
-        'string.min': `${title} should have a minimum length of {#limit}`,
-        'string.max': `${title} should have a maximum length of {#limit}`,
+        'string.empty': `The string ${title} cannot be an empty field`,
+        'string.min': `The string ${title} should have a minimum length of {#limit}`,
+        'string.max': `The string ${title} should have a maximum length of {#limit}`,
       })
       .label('Title')
 
@@ -32,7 +33,7 @@ export class TitleValueObject extends ValueObject<ITitleValueObject> {
   public static create(title: string): Result<TitleValueObject> {
     const titleOrError = this.validate(title)
     if (titleOrError.error){
-      return Result.fail(new BaseError('TitleValueObject test error'))
+      return Result.fail(new InvalidTitle(titleOrError.error.message))
     }
 
     return Result.ok(new TitleValueObject({value: title}))

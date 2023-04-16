@@ -1,10 +1,12 @@
+import { BaseError } from "./primitives/base-error";
+
 export class Result<T> {
   public readonly isSuccess: boolean;
   public readonly isFailure: boolean;
-  private readonly _error: T | string;
+  private readonly _error: BaseError;
   private readonly _value: T;
 
-  constructor(isSuccess: boolean, error?: T | string, value?: T) {
+  constructor(isSuccess: boolean, error?: BaseError, value?: T) {
     if (isSuccess && error) {
       throw new Error(
         'InvalidOperation: A result cannot be successful and contain an error'
@@ -35,8 +37,8 @@ export class Result<T> {
     return this._value;
   }
 
-  get error(): T {
-    return this._error as T;
+  get error(): BaseError {
+    return this._error as BaseError;
   }
 
   static ok<U>(value?: U): Result<U> {

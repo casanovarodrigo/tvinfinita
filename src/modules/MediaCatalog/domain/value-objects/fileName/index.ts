@@ -7,7 +7,6 @@ interface IFileNameValueObject {
   value: string
 }
 
-
 export class FileNameValueObject extends ValueObject<IFileNameValueObject> {
   static minCharCount = 1
   static maxCharCount = 50

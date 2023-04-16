@@ -1,6 +1,6 @@
 export interface ISubMediaDTO {
 	fileName: string
 	filePath: string
-	fileFormat: string
+	fileExtension: string
 	mediaName?: string
 }

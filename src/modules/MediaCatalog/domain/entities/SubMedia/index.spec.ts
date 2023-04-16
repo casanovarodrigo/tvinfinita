@@ -6,7 +6,7 @@ describe('MediaTitle', () => {
 	const singleSubMediaInfo = {
 		fileName: 'S01E02',
 		filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja/Temporada 1/',
-		fileFormat: '.avi'
+		fileExtension: '.avi'
 	}
 
 	// beforeAll(() => {

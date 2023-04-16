@@ -2,12 +2,12 @@ interface IBaseError {
   message: string
 }
 export class BaseError extends Error implements IBaseError {
-  constructor(name: string, message?: string) {
+  constructor(message?: string, name?: string) {
     let msg = `No message specified for error: ${name}`
-    if (message){
-      msg = message
-    }
+    if (message) msg = message
+    
     super(msg)
-    this.name = name
+
+    if (name) this.name = name
   }
 }

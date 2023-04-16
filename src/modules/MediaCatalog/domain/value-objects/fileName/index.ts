@@ -7,24 +7,25 @@ interface IFileNameValueObject {
   value: string
 }
 
-export const titleMinCharCount = 1
-export const titleMaxCharCount = 50
 
 export class FileNameValueObject extends ValueObject<IFileNameValueObject> {
+  static minCharCount = 1
+  static maxCharCount = 50
+
   private constructor(props: IFileNameValueObject) {
     super(props)
   }
 
   private static validate(fileName: string) {
     const schema = Joi.string()
-      .min(titleMinCharCount)
-      .max(titleMaxCharCount)
+      .min(this.minCharCount)
+      .max(this.maxCharCount)
       .messages({
         'string.empty': `${fileName} cannot be an empty field`,
         'string.min': `${fileName} should have a minimum length of {#limit}`,
         'string.max': `${fileName} should have a maximum length of {#limit}`,
       })
-      .label('Title')
+      .label('FileName')
 
     return schema.validate(fileName, { abortEarly: false })
   }

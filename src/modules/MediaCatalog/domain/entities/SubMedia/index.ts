@@ -1,4 +1,3 @@
-import { Either, left, right } from "#ddd/either"
 import { BaseError } from "#ddd/primitives/base-error"
 import { TitleValueObject } from "#modules/MediaCatalog/domain/value-objects/title"
 import { FileNameValueObject } from "#modules/MediaCatalog/domain/value-objects/fileName"
@@ -9,18 +8,18 @@ export class SubMedia {
 	public readonly fileName: FileNameValueObject
 	public readonly filePath: string
 	public readonly mediaName: TitleValueObject
-	public readonly fileFormat: string
+	public readonly fileExtension: string
 
 	private constructor(
     fileName: FileNameValueObject,
     filePath: string,
     mediaName: TitleValueObject,
-    fileFormat: string
+    fileExtension: string
   ) {
     this.fileName = fileName
     this.filePath = filePath
     this.mediaName = mediaName
-    this.fileFormat = fileFormat
+    this.fileExtension = fileExtension
     Object.freeze(this)
   }
 
@@ -39,9 +38,9 @@ export class SubMedia {
     const fileName: FileNameValueObject = fileNameOrError.result
     const mediaName: TitleValueObject = mediaNameOrError.result
     const filePath: string = SubMediaData.filePath
-    const fileFormat: string = SubMediaData.fileFormat
+    const fileExtension: string = SubMediaData.fileExtension
 
-    return Result.ok(new SubMedia(fileName, filePath, mediaName, fileFormat))
+    return Result.ok(new SubMedia(fileName, filePath, mediaName, fileExtension))
   }
 
   get DTO(): ISubMediaDTO {
@@ -49,7 +48,7 @@ export class SubMedia {
       fileName: this.fileName.value,
       mediaName: this.mediaName.value,
       filePath: this.filePath,
-      fileFormat: this.fileFormat
+      fileExtension: this.fileExtension
     }
   } 
 }

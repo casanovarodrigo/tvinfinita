@@ -10,31 +10,31 @@ describe('MediaDiscovery', () => {
 			{
 				fileName: 'S01E01.avi',
 				mediaName: 'Episódio 1',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S01E02.avi',
 				mediaName: 'Episódio 2',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S01E03.avi',
 				mediaName: 'Episódio 3',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S01E04.avi',
 				mediaName: 'Episódio 4',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S01E05.avi',
 				mediaName: 'Episódio 5',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			}
 		]
@@ -52,31 +52,31 @@ describe('MediaDiscovery', () => {
 			{
 				fileName: 'S01E01.avi',
 				mediaName: 'Episódio 1',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S01E02.avi',
 				mediaName: 'Episódio 2',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S01E03.avi',
 				mediaName: 'Episódio 3',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S01E04.avi',
 				mediaName: 'Episódio 4',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S01E05.avi',
 				mediaName: 'Episódio 5',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			}
 		]
@@ -84,31 +84,31 @@ describe('MediaDiscovery', () => {
 			{
 				fileName: 'S02E01.avi',
 				mediaName: 'Episódio 1',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S02E02.avi',
 				mediaName: 'Episódio 2',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S02E03.avi',
 				mediaName: 'Episódio 3',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S02E04.avi',
 				mediaName: 'Episódio 4',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			},
 			{
 				fileName: 'S02E05.avi',
 				mediaName: 'Episódio 5',
-				fileFormat: 'avi',
+				fileExtension: 'avi',
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			}
 		]

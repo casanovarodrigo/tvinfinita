@@ -1,3 +1,4 @@
+import { AggregateRoot } from "#ddd/primitives/aggregate-root"
 import { Playlist } from "../Playlist"
 
 
@@ -7,16 +8,17 @@ export interface IMediaTitle {
 	// setBasePlaylist: (basePlaylist: Playlist) => void
 }
 
-export class MediaTitle implements IMediaTitle {
-	public readonly basePlaylist: Playlist
-	public title: string
+interface IMediaTitleProps {
+	title: string
+	basePlaylist: Playlist
+}
 
-	constructor(title: string, basePlaylist: Playlist){
-		this.title = title
-		this.basePlaylist = basePlaylist
+export class MediaTitle extends AggregateRoot<IMediaTitle> {
+	constructor(props: IMediaTitleProps){
+		super(props)
 	}
 
 	public static create(title: string, basePlaylist: Playlist){
-		return new MediaTitle(title, basePlaylist)
+		return new MediaTitle({title, basePlaylist})
 	}
 }

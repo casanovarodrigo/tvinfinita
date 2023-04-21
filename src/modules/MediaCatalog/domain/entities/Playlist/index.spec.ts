@@ -39,7 +39,10 @@ describe('MediaDiscovery', () => {
 			}
 		]
 
-		const PlaylistInstance = Playlist.create('Bob Esponja', mediaList)
+		const PlaylistInstance = Playlist.create({
+			title: 'Bob Esponja',
+			submedia: mediaList
+		})
 
 		const subMediasAsArray = PlaylistInstance.getSubmediaMapAsArray()
 		const collectionsAsArray = PlaylistInstance.getCollectionMapAsArray()
@@ -128,11 +131,11 @@ describe('MediaDiscovery', () => {
 			}
 		]
 
-		const PlaylistInstance = new Playlist(
-			'Bob Esponja',
-			[...seasonOneFolderAndMediaList, ...seasonTwoFolderAndMediaList],
-			collectionList
-		)
+		const PlaylistInstance = Playlist.create({
+			title: 'Bob Esponja',
+			submedia: [...seasonOneFolderAndMediaList, ...seasonTwoFolderAndMediaList],
+			collections: collectionList
+		})
 
 		const subMediasAsArray = PlaylistInstance.getSubmediaMapAsArray()
 		const collectionsAsArray = PlaylistInstance.getCollectionMapAsArray()

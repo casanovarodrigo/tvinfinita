@@ -10,7 +10,7 @@ interface ITitleValueObject {
 
 export class TitleValueObject extends ValueObject<ITitleValueObject> {
   static minCharCount: number = 3
-  static maxCharCount: number = 50
+  static maxCharCount: number = 150
 
   private constructor(props: ITitleValueObject) {
     super(props)

@@ -1,8 +1,8 @@
 - object values -> determine which and create them
-- - title
+- - title - done?
 - - fileFormat
 - - duration - timestamp entity
-- - fileName?
+- - fileName - done?
 - - filePath?
 
 
@@ -33,4 +33,4 @@
 - study either, mapLeft/Right, composeFromPredicate
 - - not using these cause it looks more function oriented
 - - it sounds good to have typescript error handling but in
-- - implementation is hard to read and to reason
+- - implementation is impractical with high quantities of validation in a row

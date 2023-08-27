@@ -10,7 +10,7 @@ interface IFileExtensionValueObject {
 
 export class FileExtensionValueObject extends ValueObject<IFileExtensionValueObject> {
   static minCharCount = 2
-  static maxCharCount = 50
+  static maxCharCount = 10
   static allowedFormats = [
     'avi',
     'mkv'

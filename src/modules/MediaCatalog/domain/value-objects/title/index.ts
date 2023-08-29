@@ -2,7 +2,6 @@ import { ValueObject } from "#ddd/primitives/value-object"
 import { Result } from "#ddd/result"
 import * as Joi from "joi"
 import { InvalidTitle } from "#mediaCatalog/domain/errors/title.value-object"
-import { BaseError } from "#ddd/primitives/base-error"
 
 interface ITitleValueObject {
   value: string

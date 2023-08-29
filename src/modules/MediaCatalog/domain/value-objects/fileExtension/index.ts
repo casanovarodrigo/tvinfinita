@@ -1,8 +1,7 @@
-import { BaseError } from "#ddd/primitives/base-error"
 import { ValueObject } from "#ddd/primitives/value-object"
 import { Result } from "#ddd/result"
 import * as Joi from "joi"
-import { InvalidFileExtension } from "../../errors/fileExtension.value-object"
+import { InvalidFileExtension } from "#mediaCatalog/domain/errors/fileExtension.value-object"
 
 interface IFileExtensionValueObject {
   value: string

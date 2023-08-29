@@ -1,7 +1,7 @@
-import { BaseError } from "#ddd/primitives/base-error"
 import { ValueObject } from "#ddd/primitives/value-object"
 import { Result } from "#ddd/result"
 import * as Joi from "joi"
+import { InvalidFileName } from "#mediaCatalog/domain/errors/fileName.value-object"
 
 interface IFileNameValueObject {
   value: string
@@ -34,7 +34,7 @@ export class FileNameValueObject extends ValueObject<IFileNameValueObject> {
   public static create(fileName: string): Result<FileNameValueObject> {
     const titleOrError = this.validate(fileName)
     if (titleOrError.error){
-      return Result.fail(new BaseError(titleOrError.error.message))
+      return Result.fail(new InvalidFileName(titleOrError.error.message))
     }
 
     return Result.ok(new FileNameValueObject({value: fileName}))

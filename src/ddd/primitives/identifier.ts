@@ -32,10 +32,7 @@ export class Identifier<T> {
    * @returns boolean
    */
   equals(id?: Identifier<T>): boolean {
-    if (id === null || id === undefined) {
-      return false
-    }
-    if (!(id instanceof this.constructor)) {
+    if (id === null || id === undefined || !(id instanceof this.constructor)) {
       return false
     }
     return id.rawValue === this.rawValue

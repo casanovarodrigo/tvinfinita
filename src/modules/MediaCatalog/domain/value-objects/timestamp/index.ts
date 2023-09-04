@@ -7,6 +7,13 @@ interface ITimestampValueObject {
   value: string
 }
 
+interface TimestampIteration {
+  key: string
+  text: string
+  min: number
+  module: number
+}
+
 export class TimestampValueObject extends ValueObject<ITimestampValueObject> {
   static minCharCount: number = 3
   static maxCharCount: number = 150
@@ -34,7 +41,7 @@ export class TimestampValueObject extends ValueObject<ITimestampValueObject> {
       return Result.fail(new InvalidTimestamp(titleOrError.error.message))
     }
 
-    const iteration = [{
+    const iteration: TimestampIteration[] = [{
       key: 's',
       text: 'seconds',
       min: 0,
@@ -67,7 +74,7 @@ export class TimestampValueObject extends ValueObject<ITimestampValueObject> {
 
     let stamp: string = ''
     const minIterations = iterations
-    const currIndex: number = iteration.filter((item: any, index: number) => {
+    const currIndex: number = iteration.filter((item: TimestampIteration, index: number) => {
       const currIteration = item
       const nextIteration = iteration[index+1] || null
       let boolRes: boolean = false

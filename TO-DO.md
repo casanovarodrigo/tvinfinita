@@ -1,7 +1,7 @@
 - object values -> determine which and create them
 - - title - done?
-- - fileFormat
-- - duration - timestamp entity
+- - fileExtensions - done?
+- - duration - timestamp - done?
 - - fileName - done?
 - - filePath?
 
@@ -26,6 +26,11 @@
 - - creates SubMedia
 - - use file order to set SubMedia order in its own table
 - - - on rebuild checks if its default MediaTitle's Playlist or a specific one
+
+
+
+
+
 
 
 

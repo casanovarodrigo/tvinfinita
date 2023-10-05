@@ -33,3 +33,8 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# storage
+/storage/test
+/storage/available-titles.json
+/storage/available-titles-test.json

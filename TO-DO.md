@@ -3,7 +3,7 @@
 - - fileExtensions - done?
 - - duration - timestamp - done?
 - - fileName - done?
-- - filePath?
+- - filePath? - done?
 
 
 - Playlist entity -> change submedia simple object to SubMediaEntity

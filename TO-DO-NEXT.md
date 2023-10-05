@@ -1,0 +1,8 @@
+- MediaDiscovery
+-- criar subpasta em storage pra testes
+-- tirar createLocalRepositoryFolders do constructor
+-- atualizar testes
+--- adicionar before test limpar subasta - done
+--- adicionar teste de falha por não ter repositório - done
+--- testar método que cria tal repositório - done
+--- criar métodos de descoberta de títulos (entender onde ficam?)

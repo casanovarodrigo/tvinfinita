@@ -21,14 +21,12 @@ export class MediaTypeValueObject extends ValueObject<IMediaTypeValueObject> {
     const schema = Joi.string()
       .valid(...this.allowedTypes)
       .max(this.maxCharCount)
-      .pattern(/^((?![*?<>:"/\\|]).)*$/)
       .messages({
         'string.empty': `${mediaType} cannot be an empty field`,
         'string.max': `${mediaType} should have a maximum length of {#limit}`,
-        'any.only': `${mediaType} is not an allowed type`,
-        'string.pattern.base': `${mediaType} has invalid characters`
+        'any.only': `${mediaType} is invalid. Must be one of: ${this.allowedTypes.join(', ')}`,
       })
-      .label('FileName')
+      .label('MediaType')
 
     return schema.validate(mediaType, { abortEarly: false })
   }

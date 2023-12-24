@@ -65,11 +65,11 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
 		})
 
 		try {
-			console.log('list', list)
+			// console.log('list', list)
 
 			const titleList = await Promise.all(getSeriesRegInfoPromises)
 
-			console.log('titleList', titleList)
+			// console.log('titleList', titleList)
 
 			// console.log('titleList', titleList[0].seasonsInfo)
 			// writ to json file

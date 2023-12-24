@@ -7,7 +7,7 @@ describe('MediaDiscovery', () => {
 	const testAvailableTitles = 'available-titles.json'
 	const testValidatedTitles = 'validated-titles.json'
 	
-	let MediaDiscovery = null
+	let MediaDiscovery: MediaDiscoveryClass = null
 	beforeAll(async () => {
 		// if (fs.existsSync(testFolderPath))
 			// await fs.promises.rm('storage/test', { recursive: true })

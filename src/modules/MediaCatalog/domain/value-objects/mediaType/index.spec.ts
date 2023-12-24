@@ -7,7 +7,7 @@ describe('MediaTypeValueObject', () => {
 		const type = 'invalidtype' as IAllowedMediaTypes
 		const mediaTypeOrError = MediaTypeValueObject.create(type)
 		expect(mediaTypeOrError.error).toBeInstanceOf(InvalidMediaType)
-		expect(mediaTypeOrError.error.message).toEqual(`${type} is not an allowed type`)
+		expect(mediaTypeOrError.error.message).toEqual(`${type} is invalid. Must be one of: ${MediaTypeValueObject.allowedTypes.join(', ')}`)
 	})
 
   it('should return a valid media type tvshow value object', () => {

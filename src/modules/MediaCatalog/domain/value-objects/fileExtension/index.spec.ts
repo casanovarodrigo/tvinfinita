@@ -1,5 +1,5 @@
 import { FileExtensionValueObject } from "."
-import { InvalidFileExtension } from "../../errors/fileExtension.value-object"
+import { InvalidFileExtension } from "#mediaCatalog/domain/errors/fileExtension.value-object"
 
 describe('FileExtensionValueObject', () => {
 

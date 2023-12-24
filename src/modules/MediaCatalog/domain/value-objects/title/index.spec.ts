@@ -1,5 +1,5 @@
 import { TitleValueObject } from "."
-import { InvalidTitle } from "../../errors/title.value-object"
+import { InvalidTitle } from "#mediaCatalog/domain/errors/title.value-object"
 
 describe('TitleValueObject', () => {
   it('should return a valid title value object', () => {

@@ -1,7 +1,7 @@
 import { ValueObject } from "#ddd/primitives/value-object"
 import { Result } from "#ddd/result"
 import * as Joi from "joi"
-import { InvalidTimestamp } from "../../errors/timestamp.value-object copy"
+import { InvalidTimestamp } from "#mediaCatalog/domain/errors/timestamp.value-object copy"
 
 interface ITimestampValueObject {
   value: string

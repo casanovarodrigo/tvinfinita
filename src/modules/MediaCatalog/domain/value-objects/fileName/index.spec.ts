@@ -1,5 +1,5 @@
 import { FileNameValueObject } from "."
-import { InvalidFileName } from "../../errors/fileName.value-object"
+import { InvalidFileName } from "#mediaCatalog/domain/errors/fileName.value-object"
 
 describe('FileNameValueObject', () => {
 

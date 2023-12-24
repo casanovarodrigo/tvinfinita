@@ -1,7 +1,7 @@
 import { ValueObject } from "#ddd/primitives/value-object"
 import { Result } from "#ddd/result"
 import * as Joi from "joi"
-import { InvalidMediaWidth } from "../../errors/mediaWidth.value-object"
+import { InvalidMediaWidth } from "#mediaCatalog/domain/errors/mediaWidth.value-object"
 
 interface IMediaWidthValueObject {
   value: number

@@ -3,8 +3,7 @@ interface ValueObjectProps {
 }
 
 /**
- * @desc ValueObjects are objects that have their
- * @desc own methods or validation designed "equally"
+ * @desc ValueObjects are not permanent objects
  */
 export abstract class ValueObject<T extends ValueObjectProps> {
   protected readonly props: T

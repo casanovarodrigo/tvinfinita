@@ -1,7 +1,7 @@
 import { unsafelyUnfurlEither } from "#test/shared"
 import { SubMedia } from "."
 
-describe('MediaTitle', () => {
+describe('SubMedia', () => {
 
 	const singleSubMediaInfo = {
 		fileName: 'S01E02',

@@ -2,10 +2,11 @@
     "bob-esponja": {
         "name": "Bob Esponja",
         "path": "E:/Stream/TvInfinita/Repository/Bob Esponja",
-        "type": "serie"
+        "type": "tvshow"
     },
     "samurai-jack": {
         "name": "Samurai Jack",
-        "path": "E:/Stream/TvInfinita/Repository/Samurai Jack"
+        "path": "E:/Stream/TvInfinita/Repository/Samurai Jack",
+        "type": "tvshow"
     }
 }

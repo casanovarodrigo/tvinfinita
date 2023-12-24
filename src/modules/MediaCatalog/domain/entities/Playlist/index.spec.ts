@@ -3,7 +3,7 @@ import { ICollection } from "../interfaces"
 import { Playlist } from "."
 
 
-describe('MediaDiscovery', () => {
+describe('Playlist', () => {
 
   it('should create a Playlist from a unidimensional folder', () => {
 		const mediaList: ISubMediaDTO[] = [

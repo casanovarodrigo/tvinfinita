@@ -54,9 +54,9 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
     const unvalidatedFile = await fs.promises.readFile(`${this.storageFolderPath}/${this.availableTitlesFile}`, 'utf8')
     const list = JSON.parse(unvalidatedFile)
 
-		const getSeriesRegInfoPromises = Object.keys(list).map(async(titleKey) => {
+		const getTitlesRegistrationInfoPromises = Object.keys(list).map(async(titleKey) => {
 				let info: any = {}
-				if (list[titleKey].type = 'serie') info = await this.getSerieRegInfo(titleKey, list[titleKey])
+				if (list[titleKey].type = 'tvshow') info = await this.getTVShowRegistrationInfo(titleKey, list[titleKey])
 				// TO-DO: implement movie registration pipeline
 				// else if (title.type = 'filme') info = getMovieRegInfo(title)
 				// TO-DO: implement collection registration pipeline. Collections are small like trilogies or jackie chan movies
@@ -67,7 +67,7 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
 		try {
 			// console.log('list', list)
 
-			const titleList = await Promise.all(getSeriesRegInfoPromises)
+			const titleList = await Promise.all(getTitlesRegistrationInfoPromises)
 
 			// console.log('titleList', titleList)
 
@@ -116,7 +116,7 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
 	* @resolve Array list of existing scenes
 	* @reject errorPipe handler
 	*/
-	public async getSerieRegInfo(titleKey: string, titleObj: any){
+	public async getTVShowRegistrationInfo(titleKey: string, titleObj: any){
 
 		try {
 			const episodeList: any[] = await this.getEpisodeList(titleObj)
@@ -243,8 +243,8 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
 
 			
 		} catch (error) {
-			console.error('getSerieRegInfo error', error)
-			throw new Error('error trying to get series registration info')
+			console.error('getTVShowRegistrationInfo error', error)
+			throw new Error('error trying to get tv show registration info')
 		}
 
 	}

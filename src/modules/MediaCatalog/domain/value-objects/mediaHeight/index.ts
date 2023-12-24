@@ -7,7 +7,6 @@ interface IMediaHeightValueObject {
   value: number
 }
 
-
 export class MediaHeightValueObject extends ValueObject<IMediaHeightValueObject> {
   static minValue = 100
   static maxValue = 10000

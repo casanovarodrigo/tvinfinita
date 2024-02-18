@@ -3,5 +3,6 @@
 **/.hg
 **/node_modules
 
+dist/*
 storage/*
 **/*.md

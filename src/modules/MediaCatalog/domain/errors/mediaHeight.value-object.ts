@@ -1,10 +1,7 @@
-import { BaseError } from "#ddd/primitives/base-error";
+import { BaseError } from '#ddd/primitives/base-error'
 
 export class InvalidMediaHeight extends BaseError {
-  constructor(message: string){
-    super(
-      message,
-      'InvalidMediaHeight'
-    )
+  constructor(message: string) {
+    super(message, 'InvalidMediaHeight')
   }
 }

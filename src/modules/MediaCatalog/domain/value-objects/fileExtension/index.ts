@@ -1,7 +1,7 @@
-import { ValueObject } from "#ddd/primitives/value-object"
-import { Result } from "#ddd/result"
-import * as Joi from "joi"
-import { InvalidFileExtension } from "#mediaCatalog/domain/errors/fileExtension.value-object"
+import { ValueObject } from '#ddd/primitives/value-object'
+import { Result } from '#ddd/result'
+import * as Joi from 'joi'
+import { InvalidFileExtension } from '#mediaCatalog/domain/errors/fileExtension.value-object'
 
 interface IFileExtensionValueObject {
   value: string
@@ -10,10 +10,7 @@ interface IFileExtensionValueObject {
 export class FileExtensionValueObject extends ValueObject<IFileExtensionValueObject> {
   static minCharCount = 2
   static maxCharCount = 10
-  static allowedFormats = [
-    'avi',
-    'mkv'
-  ]
+  static allowedFormats = ['avi', 'mkv']
 
   private constructor(props: IFileExtensionValueObject) {
     super(props)
@@ -37,10 +34,10 @@ export class FileExtensionValueObject extends ValueObject<IFileExtensionValueObj
 
   public static create(fileExt: string): Result<FileExtensionValueObject> {
     const titleOrError = this.validate(fileExt)
-    if (titleOrError.error){
+    if (titleOrError.error) {
       return Result.fail(new InvalidFileExtension(titleOrError.error.message))
     }
 
-    return Result.ok(new FileExtensionValueObject({value: fileExt}))
+    return Result.ok(new FileExtensionValueObject({ value: fileExt }))
   }
 }

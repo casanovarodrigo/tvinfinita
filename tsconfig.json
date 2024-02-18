@@ -17,13 +17,13 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-		// "jsx": "react",
+    // "jsx": "react",
     "paths": {
       "#test/*": ["./test/*"],
       "#app/*": ["./src/application/*"],
       "#ddd/*": ["./src/ddd/*"],
       "#modules/*": ["./src/modules/*"],
-      "#mediaCatalog/*": ["./src/modules/MediaCatalog/*"],
+      "#mediaCatalog/*": ["./src/modules/MediaCatalog/*"]
     }
   }
 }

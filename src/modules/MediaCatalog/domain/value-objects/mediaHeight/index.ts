@@ -1,7 +1,7 @@
-import { ValueObject } from "#ddd/primitives/value-object"
-import { Result } from "#ddd/result"
-import * as Joi from "joi"
-import { InvalidMediaHeight } from "#mediaCatalog/domain/errors/mediaHeight.value-object"
+import { ValueObject } from '#ddd/primitives/value-object'
+import { Result } from '#ddd/result'
+import * as Joi from 'joi'
+import { InvalidMediaHeight } from '#mediaCatalog/domain/errors/mediaHeight.value-object'
 
 interface IMediaHeightValueObject {
   value: number
@@ -32,10 +32,10 @@ export class MediaHeightValueObject extends ValueObject<IMediaHeightValueObject>
 
   public static create(mediaHeight: number): Result<MediaHeightValueObject> {
     const titleOrError = this.validate(mediaHeight)
-    if (titleOrError.error){
+    if (titleOrError.error) {
       return Result.fail(new InvalidMediaHeight(titleOrError.error.message))
     }
 
-    return Result.ok(new MediaHeightValueObject({value: mediaHeight}))
+    return Result.ok(new MediaHeightValueObject({ value: mediaHeight }))
   }
 }

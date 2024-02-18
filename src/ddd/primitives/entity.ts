@@ -1,12 +1,12 @@
-import { DomainEntity } from "./domain-entity"
-import { DomainID } from "./domain-id"
+import { DomainEntity } from './domain-entity'
+import { DomainID } from './domain-id'
 
 export abstract class Entity<T extends DomainEntity> {
   protected readonly _id: DomainID
   protected readonly props: T
 
   constructor(props: T) {
-    this._id = props.id? props.id : DomainID.create();
+    this._id = props.id ? props.id : DomainID.create()
     this.props = props
   }
 

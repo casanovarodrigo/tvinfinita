@@ -1,10 +1,7 @@
-import { BaseError } from "#ddd/primitives/base-error";
+import { BaseError } from '#ddd/primitives/base-error'
 
 export class InvalidFileExtension extends BaseError {
-  constructor(message: string){
-    super(
-      message,
-      'InvalidFileExtension'
-    )
+  constructor(message: string) {
+    super(message, 'InvalidFileExtension')
   }
 }

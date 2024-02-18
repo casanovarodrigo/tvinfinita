@@ -1,44 +1,39 @@
-import { BaseError } from "#ddd/primitives/base-error"
-import { TitleValueObject } from "#modules/MediaCatalog/domain/value-objects/title"
-import { FileNameValueObject } from "#modules/MediaCatalog/domain/value-objects/fileName"
-import { FileExtensionValueObject } from "#modules/MediaCatalog/domain/value-objects/fileExtension"
-import { ITVShowMediaDTO } from "./interfaces"
-import { Result } from "#ddd/result"
-import { Entity } from "#ddd/primitives/entity"
-import { DomainEntity } from "#ddd/primitives/domain-entity"
-import { DomainID } from "#ddd/primitives/domain-id"
-import { FilePathValueObject } from "#mediaCatalog/domain/value-objects/filePath"
-import { MediaTypeValueObject } from "#mediaCatalog/domain/value-objects/mediaType"
+import { BaseError } from '#ddd/primitives/base-error'
+import { TitleValueObject } from '#modules/MediaCatalog/domain/value-objects/title'
+import { FileNameValueObject } from '#modules/MediaCatalog/domain/value-objects/fileName'
+import { FileExtensionValueObject } from '#modules/MediaCatalog/domain/value-objects/fileExtension'
+import { ITVShowMediaDTO } from './interfaces'
+import { Result } from '#ddd/result'
+import { Entity } from '#ddd/primitives/entity'
+import { DomainEntity } from '#ddd/primitives/domain-entity'
+import { DomainID } from '#ddd/primitives/domain-id'
+import { FilePathValueObject } from '#mediaCatalog/domain/value-objects/filePath'
+import { MediaTypeValueObject } from '#mediaCatalog/domain/value-objects/mediaType'
 
 interface ITVShowMedia extends DomainEntity {
-  fileName: FileNameValueObject,
-  filePath: FilePathValueObject,
-  mediaName: TitleValueObject,
+  fileName: FileNameValueObject
+  filePath: FilePathValueObject
+  mediaName: TitleValueObject
   fileExtension: FileExtensionValueObject
   mediaType: MediaTypeValueObject
 }
 
 export class TVShowMedia extends Entity<ITVShowMedia> {
-
-	private constructor(props: ITVShowMedia) {
+  private constructor(props: ITVShowMedia) {
     super(props)
     // Object.freeze(this)
   }
 
-	static create(SubMediaData: ITVShowMediaDTO): Result<TVShowMedia> {
+  static create(SubMediaData: ITVShowMediaDTO): Result<TVShowMedia> {
     const mediaNameOrError = TitleValueObject.create(SubMediaData.mediaName)
     const fileNameOrError = FileNameValueObject.create(SubMediaData.fileName)
     const fileExtensionOrError = FileNameValueObject.create(SubMediaData.fileExtension)
     const filePathOrError = FilePathValueObject.create(SubMediaData.filePath)
     const mediaTypeOrError = FileNameValueObject.create(SubMediaData.mediaType || 'tvshow')
 
-    const combinedResult = Result.combine([
-      mediaNameOrError,
-      fileNameOrError,
-      fileExtensionOrError
-    ])
-    
-    if (combinedResult.isFailure){
+    const combinedResult = Result.combine([mediaNameOrError, fileNameOrError, fileExtensionOrError])
+
+    if (combinedResult.isFailure) {
       throw new BaseError(combinedResult.error.message)
     }
 
@@ -58,7 +53,7 @@ export class TVShowMedia extends Entity<ITVShowMedia> {
     // TO-DO: transform this entity in TVShowMedia
     // and after also add MovieMedia
 
-    return Result.ok(new TVShowMedia({id, fileName, filePath, mediaName, fileExtension, mediaType}))
+    return Result.ok(new TVShowMedia({ id, fileName, filePath, mediaName, fileExtension, mediaType }))
   }
 
   get DTO(): ITVShowMediaDTO {
@@ -68,7 +63,7 @@ export class TVShowMedia extends Entity<ITVShowMedia> {
       mediaName: this.props.mediaName.value,
       fileExtension: this.props.fileExtension.value,
       filePath: this.props.filePath.value,
-      mediaType: this.props.mediaType.value
+      mediaType: this.props.mediaType.value,
     }
-  } 
+  }
 }

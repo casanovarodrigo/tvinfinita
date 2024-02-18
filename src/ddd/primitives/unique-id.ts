@@ -7,6 +7,6 @@ import { Identifier } from './identifier'
  */
 export class UniqueID extends Identifier<string | number> {
   constructor(id?: string) {
-    super(id? id : uuid())
+    super(id ? id : uuid())
   }
 }

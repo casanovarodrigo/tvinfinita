@@ -130,7 +130,7 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
       let epNumberRegex
       let epNumber
       let tempInfo
-      let seasonsInfo = {}
+      const seasonsInfo = {}
       let totalTitleDuration = 0
       let totalEpisodeCount = 0
       let doubleEpisode = false
@@ -147,7 +147,7 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
         epNumberRegex = ep.fileName.match(/[s|S][0-9]+[e|E]([0-9-]+)/)
         epNumber = parseInt(epNumberRegex[1])
         // tests if episode is a double episode by regex
-        let doubleEpRegex = new RegExp(/[0-9]+-[0-9]+/)
+        const doubleEpRegex = new RegExp(/[0-9]+-[0-9]+/)
         if (doubleEpRegex.test(ep.fileName)) {
           doubleEpisode = true
         }
@@ -201,7 +201,7 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
         // TO-DO: change file extensions in here as well
         const splitAtFileExtension = new RegExp(/(.*)\.(avi|mkv|mp4)$/)
         const matches = ep.fileName.match(splitAtFileExtension)
-        let episodeObject = {
+        const episodeObject = {
           season: seasonNumber, // not being used for now
           order: epNumber,
           name: matches[1],

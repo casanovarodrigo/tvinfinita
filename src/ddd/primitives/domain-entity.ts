@@ -6,7 +6,7 @@ export abstract class DomainEntity {
     public createdAt?: Date,
     public updatedAt?: Date,
     public isDeleted?: boolean,
-    public deletedAt?: Date | null,
+    public deletedAt?: Date | null
   ) {
     this.createdAt = createdAt ?? new Date()
     this.updatedAt = updatedAt ?? new Date()

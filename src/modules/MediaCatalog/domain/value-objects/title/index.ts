@@ -1,7 +1,7 @@
-import { ValueObject } from "#ddd/primitives/value-object"
-import { Result } from "#ddd/result"
-import * as Joi from "joi"
-import { InvalidTitle } from "#mediaCatalog/domain/errors/title.value-object"
+import { ValueObject } from '#ddd/primitives/value-object'
+import { Result } from '#ddd/result'
+import * as Joi from 'joi'
+import { InvalidTitle } from '#mediaCatalog/domain/errors/title.value-object'
 
 interface ITitleValueObject {
   value: string
@@ -31,10 +31,10 @@ export class TitleValueObject extends ValueObject<ITitleValueObject> {
 
   public static create(title: string): Result<TitleValueObject> {
     const titleOrError = this.validate(title)
-    if (titleOrError.error){
+    if (titleOrError.error) {
       return Result.fail(new InvalidTitle(titleOrError.error.message))
     }
 
-    return Result.ok(new TitleValueObject({value: title}))
+    return Result.ok(new TitleValueObject({ value: title }))
   }
 }

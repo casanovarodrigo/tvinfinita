@@ -1,9 +1,9 @@
-import { DomainEntity } from "#ddd/primitives/domain-entity"
-import { Entity } from "#ddd/primitives/entity"
-import { ITVShowMediaDTO } from "../TVShowMedia/interfaces"
-import { ICollection } from "../interfaces"
+import { DomainEntity } from '#ddd/primitives/domain-entity'
+import { Entity } from '#ddd/primitives/entity'
+import { ITVShowMediaDTO } from '../TVShowMedia/interfaces'
+import { ICollection } from '../interfaces'
 
-type createMap<T> = (baseOrderMap: T[]) => Map<Number, T>
+type createMap<T> = (baseOrderMap: T[]) => Map<number, T>
 
 // export interface IPlaylist extends DomainEntity {
 // 	submediaMap: Map<Number, ISubMediaDTO>
@@ -21,55 +21,50 @@ type createMap<T> = (baseOrderMap: T[]) => Map<Number, T>
 // }
 
 interface IPlaylistProps extends DomainEntity {
-	title: string
-  submediaMap: Map<Number, ITVShowMediaDTO>
-	collectionsMap?: Map<Number, ICollection>
+  title: string
+  submediaMap: Map<number, ITVShowMediaDTO>
+  collectionsMap?: Map<number, ICollection>
 }
 
 export interface IPlaylistDTO {
-	title: string
-	submedia: ITVShowMediaDTO[]
-	collections?: ICollection[]
+  title: string
+  submedia: ITVShowMediaDTO[]
+  collections?: ICollection[]
 }
 
 export class Playlist extends Entity<IPlaylistProps> {
-	constructor(props: IPlaylistProps){
-		super(props)
-	}
+  constructor(props: IPlaylistProps) {
+    super(props)
+  }
 
-	public static create({
-		title,
-		submedia,
-		collections
-	}: IPlaylistDTO){
-		
-		const submediaMap = Playlist.arrayToMap<ITVShowMediaDTO>(submedia)
-		const collectionsMap = collections? Playlist.arrayToMap<ICollection>(collections) : null
+  public static create({ title, submedia, collections }: IPlaylistDTO) {
+    const submediaMap = Playlist.arrayToMap<ITVShowMediaDTO>(submedia)
+    const collectionsMap = collections ? Playlist.arrayToMap<ICollection>(collections) : null
 
-		return new Playlist({ title, submediaMap, collectionsMap })
-	}
+    return new Playlist({ title, submediaMap, collectionsMap })
+  }
 
-	public getSubmediaMap(): Map<Number, ITVShowMediaDTO> {
-		return this.props.submediaMap
-	}
+  public getSubmediaMap(): Map<number, ITVShowMediaDTO> {
+    return this.props.submediaMap
+  }
 
-	public getCollectionMap(): Map<Number, ICollection> | undefined {
-		return this.props.collectionsMap
-	}
+  public getCollectionMap(): Map<number, ICollection> | undefined {
+    return this.props.collectionsMap
+  }
 
-	public getSubmediaMapAsArray(): ITVShowMediaDTO[] {
-		return Playlist.mapToArray(this.props.submediaMap)
-	}
+  public getSubmediaMapAsArray(): ITVShowMediaDTO[] {
+    return Playlist.mapToArray(this.props.submediaMap)
+  }
 
-	public getCollectionMapAsArray(): ICollection[] | undefined {
-		return this.props.collectionsMap? Playlist.mapToArray(this.props.collectionsMap) : undefined
-	}
+  public getCollectionMapAsArray(): ICollection[] | undefined {
+    return this.props.collectionsMap ? Playlist.mapToArray(this.props.collectionsMap) : undefined
+  }
 
-	static arrayToMap<T>(arr?: T[]): Map<Number, T> {
-		return new Map(arr.map((item: T, index: number) => [index, item]))
-	}
+  static arrayToMap<T>(arr?: T[]): Map<number, T> {
+    return new Map(arr.map((item: T, index: number) => [index, item]))
+  }
 
-	static mapToArray<T>(map: Map<Number, T>): T[] {
-		return Array.from(map.values())
-	}
+  static mapToArray<T>(map: Map<number, T>): T[] {
+    return Array.from(map.values())
+  }
 }

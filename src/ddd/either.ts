@@ -1,6 +1,6 @@
 // type Either<A, E> = Left<A> | Right<E>
 
-type Either<T, U> = Left<T> | Right<U>;
+type Either<T, U> = Left<T> | Right<U>
 
 // interface Right<A> {
 //   _tag: "right";
@@ -13,44 +13,44 @@ type Either<T, U> = Left<T> | Right<U>;
 // }
 
 class Left<T> {
-  readonly error: T;
-  readonly tag: "left";
+  readonly error: T
+  readonly tag: 'left'
 
   private constructor(error: T) {
-    this.error = error;
+    this.error = error
   }
 
   isLeft(): this is Left<T> {
-    return true;
+    return true
   }
 
   isRight(): this is Right<never> {
-    return false;
+    return false
   }
 
   static create<U>(error: U): Left<U> {
-    return new Left(error);
+    return new Left(error)
   }
 }
 
 class Right<U> {
-  readonly result: U;
-  readonly tag: "right";
+  readonly result: U
+  readonly tag: 'right'
 
   private constructor(value: U) {
-    this.result = value;
+    this.result = value
   }
 
   isLeft(): this is Left<never> {
-    return false;
+    return false
   }
 
   isRight(): this is Right<U> {
-    return true;
+    return true
   }
 
   static create<U>(value: U): Right<U> {
-    return new Right(value);
+    return new Right(value)
   }
 }
 
@@ -58,8 +58,4 @@ const left = <T>(l: T): Left<T> => Left.create(l)
 
 const right = <U>(r: U): Right<U> => Right.create(r)
 
-export {
-  Either,
-  left,
-  right
-}
+export { Either, left, right }

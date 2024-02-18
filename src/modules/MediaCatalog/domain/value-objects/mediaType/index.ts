@@ -1,7 +1,7 @@
-import { ValueObject } from "#ddd/primitives/value-object"
-import { Result } from "#ddd/result"
-import * as Joi from "joi"
-import { InvalidMediaType } from "#mediaCatalog/domain/errors/mediaType.value-object"
+import { ValueObject } from '#ddd/primitives/value-object'
+import { Result } from '#ddd/result'
+import * as Joi from 'joi'
+import { InvalidMediaType } from '#mediaCatalog/domain/errors/mediaType.value-object'
 
 interface IMediaTypeValueObject {
   value: string
@@ -33,10 +33,10 @@ export class MediaTypeValueObject extends ValueObject<IMediaTypeValueObject> {
 
   public static create(mediaType: IAllowedMediaTypes): Result<MediaTypeValueObject> {
     const titleOrError = this.validate(mediaType)
-    if (titleOrError.error){
+    if (titleOrError.error) {
       return Result.fail(new InvalidMediaType(titleOrError.error.message))
     }
 
-    return Result.ok(new MediaTypeValueObject({value: mediaType}))
+    return Result.ok(new MediaTypeValueObject({ value: mediaType }))
   }
 }

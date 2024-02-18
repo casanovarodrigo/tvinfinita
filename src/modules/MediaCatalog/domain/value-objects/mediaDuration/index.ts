@@ -1,7 +1,7 @@
-import { ValueObject } from "#ddd/primitives/value-object"
-import { Result } from "#ddd/result"
-import * as Joi from "joi"
-import { InvalidMediaDuration } from "#mediaCatalog/domain/errors/mediaDurationvalue-object"
+import { ValueObject } from '#ddd/primitives/value-object'
+import { Result } from '#ddd/result'
+import * as Joi from 'joi'
+import { InvalidMediaDuration } from '#mediaCatalog/domain/errors/mediaDurationvalue-object'
 
 interface IMediaDurationValueObject {
   value: number
@@ -29,10 +29,10 @@ export class MediaDurationValueObject extends ValueObject<IMediaDurationValueObj
 
   public static create(mediaDuration: number): Result<MediaDurationValueObject> {
     const titleOrError = this.validate(mediaDuration)
-    if (titleOrError.error){
+    if (titleOrError.error) {
       return Result.fail(new InvalidMediaDuration(titleOrError.error.message))
     }
 
-    return Result.ok(new MediaDurationValueObject({value: mediaDuration}))
+    return Result.ok(new MediaDurationValueObject({ value: mediaDuration }))
   }
 }

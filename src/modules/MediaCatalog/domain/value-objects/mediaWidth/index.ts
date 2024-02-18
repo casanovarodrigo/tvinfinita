@@ -1,7 +1,7 @@
-import { ValueObject } from "#ddd/primitives/value-object"
-import { Result } from "#ddd/result"
-import * as Joi from "joi"
-import { InvalidMediaWidth } from "#mediaCatalog/domain/errors/mediaWidth.value-object"
+import { ValueObject } from '#ddd/primitives/value-object'
+import { Result } from '#ddd/result'
+import * as Joi from 'joi'
+import { InvalidMediaWidth } from '#mediaCatalog/domain/errors/mediaWidth.value-object'
 
 interface IMediaWidthValueObject {
   value: number
@@ -32,10 +32,10 @@ export class MediaWidthValueObject extends ValueObject<IMediaWidthValueObject> {
 
   public static create(mediaWidth: number): Result<MediaWidthValueObject> {
     const titleOrError = this.validate(mediaWidth)
-    if (titleOrError.error){
+    if (titleOrError.error) {
       return Result.fail(new InvalidMediaWidth(titleOrError.error.message))
     }
 
-    return Result.ok(new MediaWidthValueObject({value: mediaWidth}))
+    return Result.ok(new MediaWidthValueObject({ value: mediaWidth }))
   }
 }

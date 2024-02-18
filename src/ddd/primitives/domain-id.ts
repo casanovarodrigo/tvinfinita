@@ -1,7 +1,5 @@
-
 import { UniqueID } from './unique-id'
 import { ValueObject } from './value-object'
-
 
 /**
  * @param id UniqueID

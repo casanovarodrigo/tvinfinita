@@ -12,7 +12,6 @@
     "#test/(.*)": ["<rootDir>/../test/$1"],
     "#app/(.*)": ["<rootDir>/application/$1"],
     "#ddd/(.*)": ["<rootDir>/ddd/$1"],
-    "#modules/(.*)": ["<rootDir>/modules/$1"],
     "#mediaCatalog/(.*)": ["<rootDir>/modules/MediaCatalog/$1"]
   }
 }

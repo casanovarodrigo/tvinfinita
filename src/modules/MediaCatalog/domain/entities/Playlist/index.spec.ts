@@ -1,4 +1,4 @@
-import { ISubMediaDTO } from "../SubMedia/interfaces"
+import { ITVShowMediaDTO } from "../TVShowMedia/interfaces"
 import { ICollection } from "../interfaces"
 import { Playlist } from "."
 
@@ -6,7 +6,7 @@ import { Playlist } from "."
 describe('Playlist', () => {
 
   it('should create a Playlist from a unidimensional folder', () => {
-		const mediaList: ISubMediaDTO[] = [
+		const mediaList: ITVShowMediaDTO[] = [
 			{
 				fileName: 'S01E01.avi',
 				mediaName: 'Episódio 1',
@@ -51,7 +51,7 @@ describe('Playlist', () => {
 	})
 
 	it('should create a Playlist from a bidimensional folder', () => {
-		const seasonOneFolderAndMediaList: ISubMediaDTO[] = [
+		const seasonOneFolderAndMediaList: ITVShowMediaDTO[] = [
 			{
 				fileName: 'S01E01.avi',
 				mediaName: 'Episódio 1',
@@ -83,7 +83,7 @@ describe('Playlist', () => {
 				filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja'
 			}
 		]
-		const seasonTwoFolderAndMediaList: ISubMediaDTO[] = [
+		const seasonTwoFolderAndMediaList: ITVShowMediaDTO[] = [
 			{
 				fileName: 'S02E01.avi',
 				mediaName: 'Episódio 1',

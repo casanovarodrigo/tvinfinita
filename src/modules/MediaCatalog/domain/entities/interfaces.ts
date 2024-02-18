@@ -1,9 +1,9 @@
-import { ISubMediaDTO } from "./SubMedia/interfaces"
+import { ITVShowMediaDTO } from "./TVShowMedia/interfaces"
 
 
 export interface ICollection {
 	title: string
 	order: number
 	length: number
-	submediaList: ISubMediaDTO[]
+	submediaList: ITVShowMediaDTO[]
 }

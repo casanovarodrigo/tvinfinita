@@ -1,26 +1,28 @@
 import { unsafelyUnfurlEither } from "#test/shared"
-import { SubMedia } from "."
+import { TVShowMedia } from "."
 
-describe('SubMedia', () => {
+describe('TVShowMedia', () => {
 
 	const singleSubMediaInfo = {
 		fileName: 'S01E02',
 		filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja/Temporada 1/',
-		fileExtension: '.avi'
+		fileExtension: '.avi',
+		mediaType: 'tvshow'
 	}
 
 	const singleSubMediaInfoWithId = {
 		id: '5f40ced7-7aaf-441f-8f00-5d215502bc4f',
 		fileName: 'S01E02',
 		filePath: 'E:/Stream/TvInfinita/Repository/Bob Esponja/Temporada 1/',
-		fileExtension: '.avi'
+		fileExtension: '.avi',
+		mediaType: 'tvshow'
 	}
 
 	// beforeAll(() => {
 	// })
 
   it('should return one single media entity without mediaName', () => {
-		const SubMediaOrError = SubMedia.create(singleSubMediaInfoWithId)
+		const SubMediaOrError = TVShowMedia.create(singleSubMediaInfoWithId)
 		const SingleSubMediaInstance = SubMediaOrError.result
     expect(SingleSubMediaInstance.DTO).toEqual(singleSubMediaInfoWithId)
 	})
@@ -30,7 +32,7 @@ describe('SubMedia', () => {
 			...singleSubMediaInfoWithId,
 			mediaName: 'Test name'
 		}
-		const SubMediaOrError = SubMedia.create(infoToUse)
+		const SubMediaOrError = TVShowMedia.create(infoToUse)
 		const SingleSubMediaInstanceWithName = SubMediaOrError.result
     expect(SingleSubMediaInstanceWithName.DTO).toEqual(infoToUse)
 	})
@@ -40,7 +42,7 @@ describe('SubMedia', () => {
 			...singleSubMediaInfo,
 			mediaName: 'Test name'
 		}
-		const SubMediaOrError = SubMedia.create(infoToUse)
+		const SubMediaOrError = TVShowMedia.create(infoToUse)
 		const SingleSubMediaInstanceWithName = SubMediaOrError.result
     expect(SingleSubMediaInstanceWithName.DTO).not.toEqual(infoToUse)
 	})

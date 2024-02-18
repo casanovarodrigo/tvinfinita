@@ -1,7 +1,8 @@
-export interface ISubMediaDTO {
-	id?: string
+export interface ITVShowMediaDTO {
 	fileName: string
 	filePath: string
 	fileExtension: string
+	mediaType?: string
+	id?: string
 	mediaName?: string
 }

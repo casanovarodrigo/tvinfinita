@@ -2,31 +2,35 @@ import { BaseError } from "#ddd/primitives/base-error"
 import { TitleValueObject } from "#modules/MediaCatalog/domain/value-objects/title"
 import { FileNameValueObject } from "#modules/MediaCatalog/domain/value-objects/fileName"
 import { FileExtensionValueObject } from "#modules/MediaCatalog/domain/value-objects/fileExtension"
-import { ISubMediaDTO } from "./interfaces"
+import { ITVShowMediaDTO } from "./interfaces"
 import { Result } from "#ddd/result"
 import { Entity } from "#ddd/primitives/entity"
 import { DomainEntity } from "#ddd/primitives/domain-entity"
-import { UniqueID } from "#ddd/primitives/unique-id"
 import { DomainID } from "#ddd/primitives/domain-id"
+import { FilePathValueObject } from "#mediaCatalog/domain/value-objects/filePath"
+import { MediaTypeValueObject } from "#mediaCatalog/domain/value-objects/mediaType"
 
-interface ISubMediaProps extends DomainEntity {
+interface ITVShowMedia extends DomainEntity {
   fileName: FileNameValueObject,
-  filePath: string,
+  filePath: FilePathValueObject,
   mediaName: TitleValueObject,
   fileExtension: FileExtensionValueObject
+  mediaType: MediaTypeValueObject
 }
 
-export class SubMedia extends Entity<ISubMediaProps> {
+export class TVShowMedia extends Entity<ITVShowMedia> {
 
-	private constructor(props: ISubMediaProps) {
+	private constructor(props: ITVShowMedia) {
     super(props)
     // Object.freeze(this)
   }
 
-	static create(SubMediaData: ISubMediaDTO): Result<SubMedia> {
+	static create(SubMediaData: ITVShowMediaDTO): Result<TVShowMedia> {
     const mediaNameOrError = TitleValueObject.create(SubMediaData.mediaName)
     const fileNameOrError = FileNameValueObject.create(SubMediaData.fileName)
     const fileExtensionOrError = FileNameValueObject.create(SubMediaData.fileExtension)
+    const filePathOrError = FilePathValueObject.create(SubMediaData.filePath)
+    const mediaTypeOrError = FileNameValueObject.create(SubMediaData.mediaType || 'tvshow')
 
     const combinedResult = Result.combine([
       mediaNameOrError,
@@ -41,19 +45,30 @@ export class SubMedia extends Entity<ISubMediaProps> {
     const id: DomainID = DomainID.create(SubMediaData.id)
     const fileName: FileNameValueObject = fileNameOrError.result
     const mediaName: TitleValueObject = mediaNameOrError.result
-    const filePath: string = SubMediaData.filePath
+    const filePath: FilePathValueObject = filePathOrError.result
     const fileExtension: FileExtensionValueObject = fileExtensionOrError.result
+    const mediaType: MediaTypeValueObject = mediaTypeOrError.result
+    // TO-DO: add these properties/value objects
+    // type - done
+    // height - done
+    // width - done
+    // duration - done
+    // ratio
 
-    return Result.ok(new SubMedia({id, fileName, filePath, mediaName, fileExtension}))
+    // TO-DO: transform this entity in TVShowMedia
+    // and after also add MovieMedia
+
+    return Result.ok(new TVShowMedia({id, fileName, filePath, mediaName, fileExtension, mediaType}))
   }
 
-  get DTO(): ISubMediaDTO {
+  get DTO(): ITVShowMediaDTO {
     return {
       id: this.id.value,
       fileName: this.props.fileName.value,
       mediaName: this.props.mediaName.value,
       fileExtension: this.props.fileExtension.value,
-      filePath: this.props.filePath
+      filePath: this.props.filePath.value,
+      mediaType: this.props.mediaType.value
     }
   } 
 }

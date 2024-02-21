@@ -22,7 +22,8 @@
       "#test/*": ["./test/*"],
       "#app/*": ["./src/application/*"],
       "#ddd/*": ["./src/ddd/*"],
-      "#mediaCatalog/*": ["./src/modules/MediaCatalog/*"]
+      "#mediaCatalog/*": ["./src/modules/MediaCatalog/*"],
+      "#stage/*": ["./src/modules/Stage/*"]
     }
   }
 }

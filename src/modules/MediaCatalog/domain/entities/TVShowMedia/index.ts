@@ -37,12 +37,12 @@ export class TVShowMedia extends Entity<ITVShowMedia> {
       throw new BaseError(combinedResult.error.message)
     }
 
-    const id: DomainID = DomainID.create(SubMediaData.id)
-    const fileName: FileNameValueObject = fileNameOrError.result
-    const mediaName: TitleValueObject = mediaNameOrError.result
-    const filePath: FilePathValueObject = filePathOrError.result
-    const fileExtension: FileExtensionValueObject = fileExtensionOrError.result
-    const mediaType: MediaTypeValueObject = mediaTypeOrError.result
+    const id = DomainID.create(SubMediaData.id)
+    const fileName = fileNameOrError.result
+    const mediaName = mediaNameOrError.result
+    const filePath = filePathOrError.result
+    const fileExtension = fileExtensionOrError.result
+    const mediaType = mediaTypeOrError.result
     // TO-DO: add these properties/value objects
     // type - done
     // height - done
@@ -53,7 +53,16 @@ export class TVShowMedia extends Entity<ITVShowMedia> {
     // TO-DO: transform this entity in TVShowMedia
     // and after also add MovieMedia
 
-    return Result.ok(new TVShowMedia({ id, fileName, filePath, mediaName, fileExtension, mediaType }))
+    return Result.ok(
+      new TVShowMedia({
+        id: DomainID.create(SubMediaData.id),
+        fileName: fileNameOrError.result,
+        filePath: filePathOrError.result,
+        mediaName: mediaNameOrError.result as MediaTypeValueObject,
+        fileExtension: fileExtensionOrError.result,
+        mediaType: mediaTypeOrError.result,
+      })
+    )
   }
 
   get DTO(): ITVShowMediaDTO {

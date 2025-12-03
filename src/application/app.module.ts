@@ -5,6 +5,7 @@ import * as Joi from 'joi'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { MediaCatalogModule } from '#mediaCatalog/MediaCatalog.module'
+import { StageModule } from '#stage/Stage.module'
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MediaCatalogModule } from '#mediaCatalog/MediaCatalog.module'
     }),
     PostgresModule,
     MediaCatalogModule,
+    StageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

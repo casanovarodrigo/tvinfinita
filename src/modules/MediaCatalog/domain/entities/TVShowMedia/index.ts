@@ -8,14 +8,20 @@ import { Entity } from '#ddd/primitives/entity'
 import { DomainEntity } from '#ddd/primitives/domain-entity'
 import { DomainID } from '#ddd/primitives/domain-id'
 import { FilePathValueObject } from '#mediaCatalog/domain/value-objects/filePath'
-import { MediaTypeValueObject } from '#mediaCatalog/domain/value-objects/mediaType'
+import { MediaDurationValueObject } from '#mediaCatalog/domain/value-objects/mediaDuration'
+import { MediaHeightValueObject } from '#mediaCatalog/domain/value-objects/mediaHeight'
+import { MediaWidthValueObject } from '#mediaCatalog/domain/value-objects/mediaWidth'
 
 interface ITVShowMedia extends DomainEntity {
   fileName: FileNameValueObject
   filePath: FilePathValueObject
-  mediaName: TitleValueObject
+  folderName: FileNameValueObject
+  title: TitleValueObject
   fileExtension: FileExtensionValueObject
-  mediaType: MediaTypeValueObject
+  duration: MediaDurationValueObject
+  width: MediaDurationValueObject
+  height: MediaDurationValueObject
+  ratio: string
 }
 
 export class TVShowMedia extends Entity<ITVShowMedia> {
@@ -25,42 +31,33 @@ export class TVShowMedia extends Entity<ITVShowMedia> {
   }
 
   static create(SubMediaData: ITVShowMediaDTO): Result<TVShowMedia> {
-    const mediaNameOrError = TitleValueObject.create(SubMediaData.mediaName)
+    const titleOrError = TitleValueObject.create(SubMediaData.title)
     const fileNameOrError = FileNameValueObject.create(SubMediaData.fileName)
-    const fileExtensionOrError = FileNameValueObject.create(SubMediaData.fileExtension)
+    const fileExtensionOrError = FileNameValueObject.create(SubMediaData.fileExt)
     const filePathOrError = FilePathValueObject.create(SubMediaData.filePath)
-    const mediaTypeOrError = FileNameValueObject.create(SubMediaData.mediaType || 'tvshow')
+    const durationOrError = MediaDurationValueObject.create(SubMediaData.duration)
+    const folderNameOrError = FileNameValueObject.create(SubMediaData.folderName)
+    const widthOrError = MediaWidthValueObject.create(SubMediaData.width)
+    const heightOrError = MediaHeightValueObject.create(SubMediaData.height)
 
-    const combinedResult = Result.combine([mediaNameOrError, fileNameOrError, fileExtensionOrError])
+    const combinedResult = Result.combine([titleOrError, fileNameOrError, fileExtensionOrError])
 
     if (combinedResult.isFailure) {
       throw new BaseError(combinedResult.error.message)
     }
-
-    const id = DomainID.create(SubMediaData.id)
-    const fileName = fileNameOrError.result
-    const mediaName = mediaNameOrError.result
-    const filePath = filePathOrError.result
-    const fileExtension = fileExtensionOrError.result
-    const mediaType = mediaTypeOrError.result
-    // TO-DO: add these properties/value objects
-    // type - done
-    // height - done
-    // width - done
-    // duration - done
-    // ratio
-
-    // TO-DO: transform this entity in TVShowMedia
-    // and after also add MovieMedia
 
     return Result.ok(
       new TVShowMedia({
         id: DomainID.create(SubMediaData.id),
         fileName: fileNameOrError.result,
         filePath: filePathOrError.result,
-        mediaName: mediaNameOrError.result as MediaTypeValueObject,
+        title: titleOrError.result,
         fileExtension: fileExtensionOrError.result,
-        mediaType: mediaTypeOrError.result,
+        duration: durationOrError.result,
+        folderName: folderNameOrError.result,
+        width: widthOrError.result,
+        height: heightOrError.result,
+        ratio: SubMediaData.ratio,
       })
     )
   }
@@ -69,10 +66,14 @@ export class TVShowMedia extends Entity<ITVShowMedia> {
     return {
       id: this.id.value,
       fileName: this.props.fileName.value,
-      mediaName: this.props.mediaName.value,
-      fileExtension: this.props.fileExtension.value,
+      title: this.props.title.value,
       filePath: this.props.filePath.value,
-      mediaType: this.props.mediaType.value,
+      folderName: this.props.folderName.value,
+      fileExt: this.props.fileExtension.value,
+      width: this.props.width.value,
+      height: this.props.height.value,
+      ratio: this.props.ratio,
+      duration: this.props.duration.value,
     }
   }
 }

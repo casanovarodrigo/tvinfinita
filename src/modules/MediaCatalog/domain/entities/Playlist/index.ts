@@ -1,7 +1,7 @@
 import { DomainEntity } from '#ddd/primitives/domain-entity'
 import { Entity } from '#ddd/primitives/entity'
 import { ITVShowMediaDTO } from '../TVShowMedia/interfaces'
-import { ICollection } from '../interfaces'
+import { ICollection } from './interfaces'
 
 type createMap<T> = (baseOrderMap: T[]) => Map<number, T>
 
@@ -22,12 +22,16 @@ type createMap<T> = (baseOrderMap: T[]) => Map<number, T>
 
 interface IPlaylistProps extends DomainEntity {
   title: string
+  mediaTitleId: string
   submediaMap: Map<number, ITVShowMediaDTO>
+  isAnchor: boolean
   collectionsMap?: Map<number, ICollection>
 }
 
 export interface IPlaylistDTO {
   title: string
+  isAnchor: boolean
+  mediaTitleId: string
   submedia: ITVShowMediaDTO[]
   collections?: ICollection[]
 }
@@ -37,11 +41,17 @@ export class Playlist extends Entity<IPlaylistProps> {
     super(props)
   }
 
-  public static create({ title, submedia, collections }: IPlaylistDTO) {
+  public static create({
+    title,
+    submedia,
+    isAnchor = false,
+    collections = null,
+    mediaTitleId = null,
+  }: IPlaylistDTO) {
     const submediaMap = Playlist.arrayToMap<ITVShowMediaDTO>(submedia)
     const collectionsMap = collections ? Playlist.arrayToMap<ICollection>(collections) : null
 
-    return new Playlist({ title, submediaMap, collectionsMap })
+    return new Playlist({ title, submediaMap, collectionsMap, isAnchor, mediaTitleId })
   }
 
   public getSubmediaMap(): Map<number, ITVShowMediaDTO> {

@@ -9,7 +9,7 @@ interface IFilePathValueObject {
 
 export class FilePathValueObject extends ValueObject<IFilePathValueObject> {
   static minCharCount = 1
-  static maxCharCount = 50
+  static maxCharCount = 150
 
   private constructor(props: IFilePathValueObject) {
     super(props)

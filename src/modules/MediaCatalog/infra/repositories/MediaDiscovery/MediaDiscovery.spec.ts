@@ -3,7 +3,7 @@ import { MediaDiscoveryClass } from './MediaDiscovery'
 
 describe('MediaDiscovery', () => {
   const testFolderPath = 'storage/test'
-  const testAvailableTitles = 'available-titles.json'
+  const testAvailableTitles = 'dont-delete-available-titles-test.json'
   const testValidatedTitles = 'validated-titles.json'
 
   let MediaDiscovery: MediaDiscoveryClass = null

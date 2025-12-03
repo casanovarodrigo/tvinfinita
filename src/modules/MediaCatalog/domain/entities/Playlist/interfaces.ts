@@ -1,4 +1,4 @@
-import { ITVShowMediaDTO } from './TVShowMedia/interfaces'
+import { ITVShowMediaDTO } from '../TVShowMedia/interfaces'
 
 export interface ICollection {
   title: string

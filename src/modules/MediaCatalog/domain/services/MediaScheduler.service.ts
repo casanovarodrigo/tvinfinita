@@ -61,11 +61,7 @@ export class MediaSchedulerService {
    * @param titleId Title ID
    * @param media Media that was scheduled
    */
-  public static updateLastScheduled(
-    schedule: Schedule,
-    titleId: string,
-    media: ITVShowMediaDTO
-  ): void {
+  public static updateLastScheduled(schedule: Schedule, titleId: string, media: ITVShowMediaDTO): void {
     schedule.updateLastScheduled(titleId, media)
   }
 
@@ -75,11 +71,7 @@ export class MediaSchedulerService {
    * @param titleId Title ID
    * @returns Last scheduled media or undefined
    */
-  public static getLastScheduled(
-    schedule: Schedule,
-    titleId: string
-  ): ITVShowMediaDTO | undefined {
+  public static getLastScheduled(schedule: Schedule, titleId: string): ITVShowMediaDTO | undefined {
     return schedule.getLastScheduled(titleId)
   }
 }
-

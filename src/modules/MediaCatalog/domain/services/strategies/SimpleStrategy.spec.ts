@@ -146,9 +146,7 @@ describe('SimpleStrategy', () => {
         ],
       }
 
-      expect(() => SimpleStrategy.generate(options)).toThrow(
-        'SimpleStrategy requires exactly one title'
-      )
+      expect(() => SimpleStrategy.generate(options)).toThrow('SimpleStrategy requires exactly one title')
     })
 
     it('should track last scheduled episode', () => {
@@ -172,4 +170,3 @@ describe('SimpleStrategy', () => {
     })
   })
 })
-

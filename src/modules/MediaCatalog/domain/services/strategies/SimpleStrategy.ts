@@ -12,9 +12,7 @@ export class SimpleStrategy {
    * @param options Schedule options with timespan and titles
    * @returns Generated media queue and last scheduled media per title
    */
-  public static generate(
-    options: IScheduleOptions
-  ): {
+  public static generate(options: IScheduleOptions): {
     toPlay: MediaQueue
     lastScheduledFromTitle: Record<string, ITVShowMediaDTO>
   } {
@@ -60,4 +58,3 @@ export class SimpleStrategy {
     }
   }
 }
-

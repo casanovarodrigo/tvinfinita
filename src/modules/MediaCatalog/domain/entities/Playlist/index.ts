@@ -3,8 +3,6 @@ import { Entity } from '#ddd/primitives/entity'
 import { ITVShowMediaDTO } from '../TVShowMedia/interfaces'
 import { ICollection } from './interfaces'
 
-type createMap<T> = (baseOrderMap: T[]) => Map<number, T>
-
 // export interface IPlaylist extends DomainEntity {
 // 	submediaMap: Map<Number, ISubMediaDTO>
 // 	collectionMap: Map<Number, ICollection>

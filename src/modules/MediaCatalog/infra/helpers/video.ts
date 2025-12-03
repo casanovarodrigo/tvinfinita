@@ -1,11 +1,11 @@
 // NEEDS to download ffmpeg from https://www.ffmpeg.org/download.html and add it to windows PATH
 // https://www.youtube.com/watch?v=5xgegeBL0kw
 import * as fs from 'fs'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const ffmpeg = require('fluent-ffmpeg')
 
 const ffmpegPath = 'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe'
 const ffProbePath = 'C:\\Program Files\\ffmpeg\\bin\\ffprobe.exe'
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const ffmpeg = require('fluent-ffmpeg')
 ffmpeg.setFfmpegPath(ffmpegPath)
 ffmpeg.setFfprobePath(ffProbePath)
 
@@ -34,7 +34,7 @@ export const getVideoMetadata = async (filePath) => {
       duration: formatMeta.duration,
       bitrate: formatMeta.bit_rate,
     }
-  } catch (error) {
+  } catch {
     throw new Error('video file is missing or path is wrong')
   }
 }

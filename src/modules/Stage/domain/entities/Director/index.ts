@@ -37,11 +37,18 @@ export class Director extends Entity<IDirector> {
       throw new BaseError(combinedResult.error.message)
     }
 
+    // TODO: Director class is temporary and will be refactored soon
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const id = DomainID.create(SubMediaData.id)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const fileName = fileNameOrError.result
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const mediaName = mediaNameOrError.result
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const filePath = filePathOrError.result
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const fileExtension = fileExtensionOrError.result
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const mediaType = mediaTypeOrError.result
     // TO-DO: add these properties/value objects
     // type - done

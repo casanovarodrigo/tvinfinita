@@ -1,4 +1,3 @@
-import { unsafelyUnfurlEither } from '#test/shared'
 import { Director } from '.'
 
 describe('Director', () => {

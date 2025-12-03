@@ -1,6 +1,6 @@
-import { v4 as uuid } from 'uuid'
+// uuid is used via v4() function call, not as type
 
-export class Identifier<T> {
+export class Identifier<T extends string | number> {
   private value: T
 
   constructor(value: T) {
@@ -22,7 +22,7 @@ export class Identifier<T> {
    * @readonly
    * @memberof Identifier
    */
-  get rawValue(): string | number | uuid {
+  get rawValue(): string | number {
     return this.value
   }
 

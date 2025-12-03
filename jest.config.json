@@ -14,5 +14,6 @@
     "#ddd/(.*)": ["<rootDir>/ddd/$1"],
     "#mediaCatalog/(.*)": ["<rootDir>/modules/MediaCatalog/$1"],
     "#stage/(.*)": ["<rootDir>/modules/Stage/$1"]
-  }
+  },
+  "transformIgnorePatterns": ["node_modules/(?!(uuid)/)"]
 }

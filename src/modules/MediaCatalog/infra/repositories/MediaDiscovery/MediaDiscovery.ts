@@ -1,6 +1,5 @@
 import * as fs from 'fs'
 import { getVideoMetadata } from '#mediaCatalog/infra/helpers/video'
-import { filter } from 'rxjs'
 
 interface IMediaDiscovery {
   createLocalRepositoryFolders: () => void
@@ -70,8 +69,8 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
     // media storage cache folder
     try {
       await fs.promises.access(this.storageFolderPath)
-    } catch (error) {
-      if (error) fs.mkdirSync(this.storageFolderPath, { recursive: true })
+    } catch {
+      fs.mkdirSync(this.storageFolderPath, { recursive: true })
     }
   }
 
@@ -101,7 +100,7 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
 
     const getTitlesRegistrationInfoPromises = Object.keys(list).map(async (titleIndex) => {
       let info: ITvShowRegistration
-      if ((list[titleIndex].type = 'tvshow'))
+      if (list[titleIndex].type === 'tvshow')
         info = await this.getTVShowRegistrationInfo(titleIndex, list[titleIndex])
       // info = await this.getTVShowRegistrationInfoOld(titleKey, list[titleKey])
       // TO-DO: implement movie registration pipeline

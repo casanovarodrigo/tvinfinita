@@ -7,7 +7,7 @@ import * as fs from 'fs'
  * @resolves {Boolean} resolves true if file exists, false if doesn't
  */
 export const existsAsync = (filepath) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     fs.access(filepath, fs.constants.F_OK, (error) => {
       // console.log('existsAsync Error', error, !error)
       resolve(!error)

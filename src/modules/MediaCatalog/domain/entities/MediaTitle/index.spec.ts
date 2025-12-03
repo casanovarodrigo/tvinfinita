@@ -1,6 +1,3 @@
-import * as fs from 'fs'
-import { MediaTitle } from '.'
-
 describe('MediaTitle', () => {
   // beforeAll(() => {
   // 	MediaTitleMock = MediaTitle

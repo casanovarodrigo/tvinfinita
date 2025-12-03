@@ -1,5 +1,4 @@
 import { MediaSchedulerService } from './MediaScheduler.service'
-import { Schedule } from '../entities/Schedule'
 import { IScheduleOptions } from '../entities/Schedule/interfaces'
 import { MediaTitle } from '../entities/MediaTitle'
 import { Playlist } from '../entities/Playlist'
@@ -99,9 +98,7 @@ describe('MediaSchedulerService Integration', () => {
       // Assert - Should loop through episodes
       expect(schedule.toPlay.length).toBeGreaterThan(3)
       // First episode should appear multiple times
-      const firstEpisodeIds = schedule.toPlay
-        .map((ep) => ep.id)
-        .filter((id) => id === 'ep-1')
+      const firstEpisodeIds = schedule.toPlay.map((ep) => ep.id).filter((id) => id === 'ep-1')
       expect(firstEpisodeIds.length).toBeGreaterThan(1)
     })
 
@@ -166,9 +163,7 @@ describe('MediaSchedulerService Integration', () => {
       expect(first).toBeDefined()
       expect(second).toBeDefined()
       expect(first).not.toEqual(second)
-      expect(MediaSchedulerService.isScheduleToPlayEmpty(schedule)).toBe(
-        initialLength === 2
-      )
+      expect(MediaSchedulerService.isScheduleToPlayEmpty(schedule)).toBe(initialLength === 2)
 
       // Peek should show next item
       const next = MediaSchedulerService.peekNextFromSchedule(schedule, 1)
@@ -178,4 +173,3 @@ describe('MediaSchedulerService Integration', () => {
     })
   })
 })
-

@@ -40,7 +40,6 @@ describe('MediaFormatterService', () => {
           local_file: expect.stringContaining('episode-1.mp4'),
           is_local_file: true,
           looping: false,
-          restart_on_activate: true,
         },
       })
     })

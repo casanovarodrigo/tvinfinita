@@ -182,4 +182,3 @@ export class Stage extends Entity<IStageProps> {
     }
   }
 }
-

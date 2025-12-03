@@ -8,10 +8,15 @@ export interface IOBSMediaSource {
   sourceName: string
   sourceType: 'ffmpeg_source' | 'vlc_source' | 'media_source'
   sourceSettings: {
-    local_file: string
-    is_local_file: boolean
+    local_file?: string
+    is_local_file?: boolean
     looping?: boolean
-    restart_on_activate?: boolean
+    playlist?: Array<{ value: string }>
+  }
+  metadata?: {
+    width: number
+    height: number
+    duration: number
   }
   position?: {
     x: number
@@ -51,16 +56,28 @@ export class MediaFormatterService {
 
     return media.map((mediaItem, index) => {
       const sourceName = this.generateSourceName(stageName, index, mediaItem)
-      const filePath = this.normalizeFilePath(mediaItem.filePath)
+      // Construct full file path: path + fileName + . + fileExt (matching legacy format)
+      // Ensure filePath ends with a slash if it doesn't already
+      // Note: fileExt is stored without the dot (e.g., "avi", "mkv"), so we need to add it
+      const normalizedPath =
+        mediaItem.filePath.endsWith('/') || mediaItem.filePath.endsWith('\\')
+          ? mediaItem.filePath
+          : `${mediaItem.filePath}/`
+      const fullFilePath = `${normalizedPath}${mediaItem.fileName}.${mediaItem.fileExt}`
+      const filePath = this.normalizeFilePath(fullFilePath)
 
       return {
         sourceName,
-        sourceType: 'ffmpeg_source' as const,
+        sourceType: 'vlc_source' as const,
         sourceSettings: {
-          local_file: filePath,
-          is_local_file: true,
-          looping: false,
-          restart_on_activate: true,
+          playlist: [{ value: filePath }],
+          // Note: vlc_source doesn't auto-play by default
+          // Playback is controlled via TriggerMediaInputAction and visibility
+        },
+        metadata: {
+          width: mediaItem.width || 1920,
+          height: mediaItem.height || 1080,
+          duration: mediaItem.duration || 0,
         },
       }
     })
@@ -79,29 +96,46 @@ export class MediaFormatterService {
     index: number = 0
   ): IOBSMediaSource {
     const sourceName = this.generateSourceName(stageName, index, media)
-    const filePath = this.normalizeFilePath(media.filePath)
+    // Construct full file path: path + fileName + . + fileExt (matching legacy format)
+    // Ensure filePath ends with a slash if it doesn't already
+    // Note: fileExt is stored without the dot (e.g., "avi", "mkv"), so we need to add it
+    const normalizedPath =
+      media.filePath.endsWith('/') || media.filePath.endsWith('\\') ? media.filePath : `${media.filePath}/`
+    const fullFilePath = `${normalizedPath}${media.fileName}.${media.fileExt}`
+    const filePath = this.normalizeFilePath(fullFilePath)
 
     return {
       sourceName,
-      sourceType: 'ffmpeg_source' as const,
+      sourceType: 'vlc_source' as const,
       sourceSettings: {
-        local_file: filePath,
-        is_local_file: true,
-        looping: false,
-        restart_on_activate: true,
+        playlist: [{ value: filePath }],
+        // Note: vlc_source doesn't auto-play by default
+        // Playback is controlled via TriggerMediaInputAction and visibility
+      },
+      metadata: {
+        width: media.width || 1920,
+        height: media.height || 1080,
+        duration: media.duration || 0,
       },
     }
   }
 
   /**
    * Generate a unique source name for OBS
-   * Format: {stageName}_{index}_{sanitizedFileName}
-   * @param stageName Name of the stage
-   * @param index Index of the media item
+   * Format: {sanitizedTitleName}_{sanitizedFileName}
+   * The duplicate error check helps us detect if we're trying to render the same file twice
+   * @param stageName Name of the stage (not used in source name, kept for compatibility)
+   * @param index Index of the media item (not used in source name, kept for compatibility)
    * @param media Media item
    * @returns Generated source name
    */
   private static generateSourceName(stageName: string, index: number, media: ITVShowMediaDTO): string {
+    // Sanitize title name for OBS (remove special characters, spaces)
+    const sanitizedTitleName = media.title
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .replace(/\s+/g, '_')
+      .toLowerCase()
+
     // Sanitize file name for OBS (remove special characters, spaces)
     const sanitizedFileName = media.fileName
       .replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -111,7 +145,8 @@ export class MediaFormatterService {
     // Remove file extension for cleaner naming
     const nameWithoutExt = sanitizedFileName.replace(/\.[^.]+$/, '')
 
-    return `${stageName}_${index}_${nameWithoutExt}`
+    // Return format: {sanitizedTitleName}_{sanitizedFileName}
+    return `${sanitizedTitleName}_${nameWithoutExt}`
   }
 
   /**

@@ -3,7 +3,7 @@
 **Created:** 2025-01-22  
 **Based on:** 4-FOCUSED-IMPLEMENTATION-PLAN.md  
 **Status:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4+ Pending  
-**Last Updated:** 2025-12-03
+**Last Updated:** 2025-01-22
 
 ---
 
@@ -124,8 +124,9 @@
 ### 2.1 Schedule Domain Entity (2 hours)
 - [x] Create `src/modules/MediaCatalog/domain/entities/Schedule/index.ts`
 - [x] Create `src/modules/MediaCatalog/domain/entities/Schedule/interfaces.ts`
-- [x] Implement properties: id, preStart, toPlay, lastScheduledFromTitle, unstarted
-- [x] Implement methods: addToPreStart(), addToToPlay(), shiftToPlay(), peekToPlay()
+- [x] Implement properties: id, preStart, toPlay, lastScheduledFromTitle, unstarted, nextPeekIndex
+- [x] Implement methods: addToPreStart(), addToToPlay(), shiftToPlay(), peekToPlay() (uses nextPeekIndex)
+- [x] Implement methods: advancePeekIndex(), getPeekIndex() (for sequential rendering tracking)
 - [x] Implement methods: isToPlayEmpty(), updateLastScheduled(), getLastScheduled(), markAsStarted()
 - [x] Implement DTO getter
 - [x] Create unit tests (15 tests, 100% coverage)
@@ -137,6 +138,7 @@
 - [x] Implement last scheduled episode tracking
 - [x] Add error handling for multiple titles (throws error)
 - [x] Handle empty playlists gracefully
+- [x] Fix episode uniqueness (push shallow copy `{ ...episode }` instead of same reference)
 - [x] Create unit tests (6 tests, 100% coverage)
 
 ### 2.3 MediaScheduler Domain Service (4 hours)
@@ -205,6 +207,7 @@
 - [x] Create `src/modules/Stage/domain/services/MediaFormatter.service.ts`
 - [x] Implement formatMediaForObs() method
 - [x] Convert domain entities to OBS format
+- [x] Source name format: `{sanitizedTitleName}_{sanitizedFileName}` (removed stage prefix, index, short ID)
 
 ### 3.4 Director Use Cases (10 hours)
 
@@ -225,17 +228,20 @@
 #### 3.4.3 RenderNextScheduledMedia Use Case (2 hours)
 - [x] Create `src/modules/Stage/application/use-cases/RenderNextScheduledMedia.use-case.ts`
 - [x] Implement get available stage
-- [x] Implement get next media from schedule
+- [x] Implement get next media from schedule (using nextPeekIndex for sequential rendering)
 - [x] Implement create OBS sources
 - [x] Implement set stage in use
 - [x] Implement format and position media
+- [x] Add stage to queue after rendering (for startSchedule to use)
+- [x] Advance peek index after rendering (prevents duplicate episodes)
 
 #### 3.4.4 StartSchedule Use Case (2 hours)
 - [x] Create `src/modules/Stage/application/use-cases/StartSchedule.use-case.ts`
-- [x] Implement get next stage from queue
-- [x] Implement get first media from schedule
+- [x] Implement get next stage from queue (ALWAYS from queue, not available stages - matches legacy)
+- [x] Implement get first media from schedule (peeks from nextPeekIndex if stage queue empty)
 - [x] Implement start media playback
 - [x] Implement change to stage scene
+- [x] Implement hide other sources in scene (only one visible/playing at a time)
 - [ ] Implement schedule next media cron job (if needed)
 
 #### 3.4.5 NextMedia Use Case (2 hours)
@@ -265,6 +271,14 @@
 - Cron job scheduling is optional and can be added later if needed
 - Background images are now using actual files from legacy vcmanda project (assets/scene-props/)
 - All use cases properly integrated with OBS WebSocket API v5
+
+### Recent Bug Fixes (2025-01-22)
+- ✅ **Fixed duplicate episode rendering**: Added `addStageToQueue()` call in `RenderNextScheduledMediaUseCase` after rendering media. This ensures `startSchedule()` uses the correct stage that was just rendered.
+- ✅ **Fixed sequential rendering**: Added `nextPeekIndex` property to Schedule entity to track which items have been peeked. This ensures stage 1 gets episodes 1-4, stage 2 gets episodes 5-8, etc.
+- ✅ **Fixed episode uniqueness**: Modified `SimpleStrategy` to push shallow copies (`{ ...episode }`) instead of same object reference, ensuring each schedule entry is unique.
+- ✅ **Fixed source name generation**: Removed stage name prefix, index/number, and short ID suffix. Final format: `{sanitizedTitleName}_{sanitizedFileName}`.
+- ✅ **Fixed StartSchedule queue logic**: Changed to ALWAYS use stages from queue (matching legacy behavior), not available stages. This prevents getting wrong stage without pre-rendered media.
+- ✅ **Fixed StartSchedule media selection**: When stage queue is empty, now peeks from `nextPeekIndex` instead of shifting from index 0, preventing duplicate episodes.
 
 ---
 

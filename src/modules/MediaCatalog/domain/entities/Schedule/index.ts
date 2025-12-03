@@ -57,10 +57,19 @@ export class Schedule extends Entity<IScheduleProps> {
     this.props.toPlay.push(media)
   }
 
+  /**
+   * Shift (remove and return) the next item from the schedule
+   * @returns Next media item or undefined if empty
+   */
   public shiftToPlay(): ITVShowMediaDTO | undefined {
     return this.props.toPlay.shift()
   }
 
+  /**
+   * Peek at the next items from the schedule
+   * @param count Number of items to peek
+   * @returns Array of media items
+   */
   public peekToPlay(count: number = 1): MediaQueue {
     return this.props.toPlay.slice(0, count)
   }

@@ -164,4 +164,3 @@ export class StageManagerService {
     return stages.filter((stage) => stage.status === status)
   }
 }
-

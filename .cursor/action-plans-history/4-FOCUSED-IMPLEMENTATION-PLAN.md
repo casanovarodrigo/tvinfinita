@@ -25,6 +25,13 @@ Based on your requirements, here's the reordered plan:
 **Time:** 22 hours  
 **Note:** Core functionality complete. Chat overlays deferred to Phase 9. Background images integrated from legacy project.
 
+**Recent Bug Fixes (2025-01-22):**
+- ✅ Fixed duplicate episode rendering across stages (added stage queue management)
+- ✅ Fixed sequential rendering (added nextPeekIndex tracking to Schedule entity)
+- ✅ Fixed episode uniqueness in SimpleStrategy (shallow copy instead of same reference)
+- ✅ Fixed source name generation (removed stage prefix, index, and short ID)
+- ✅ Fixed StartSchedule to always use queue (matching legacy behavior)
+
 ### Phase 4: OBS Repositories/Models
 **Status:** Not started  
 **Time:** 14 hours  
@@ -147,10 +154,13 @@ export class MediaSchedulerService {
 - ✅ toPlay: MediaQueue (currently playing)
 - ✅ lastScheduledFromTitle: Map<string, ITVShowMediaDTO>
 - ✅ unstarted: boolean
+- ✅ nextPeekIndex: number (tracks next position for peeking, prevents duplicate rendering)
 
 **Methods:**
 - ✅ addToPreStart(), addToToPlay()
-- ✅ shiftToPlay(), peekToPlay()
+- ✅ shiftToPlay(), peekToPlay() (uses nextPeekIndex for sequential peeking)
+- ✅ advancePeekIndex() (increments after items are peeked/rendered)
+- ✅ getPeekIndex() (get current peek position)
 - ✅ isToPlayEmpty()
 - ✅ updateLastScheduled(), getLastScheduled()
 - ✅ markAsStarted()
@@ -189,7 +199,7 @@ export class MediaSchedulerService {
 - `addStageToQueue(stage: Stage): void`
 - `popNextStageInQueue(): Stage`
 
-#### 3.3 Media Formatter Domain Service (2 hours)
+#### 3.3 Media Formatter Domain Service (2 hours) ✅
 **Create:** `src/modules/Stage/domain/services/MediaFormatter.service.ts`
 
 **Port from:** Director's `formatMediaForObs()`
@@ -200,6 +210,13 @@ export class MediaSchedulerService {
 ```typescript
 formatMediaForObs(media: TVShowMedia[], stageName: string): OBSMediaSource[]
 ```
+
+**Source Name Format:** ✅
+- Format: `{sanitizedTitleName}_{sanitizedFileName}`
+- Removed stage name prefix (for global uniqueness)
+- Removed index/number prefix
+- Removed short ID suffix
+- Uses title name + file name for uniqueness
 
 #### 3.4 Director Use Cases (10 hours)
 **Break Director into use cases:**
@@ -230,16 +247,18 @@ export class RenderBaseScenesUseCase {
 }
 ```
 
-**3.4.3 RenderNextScheduledMedia Use Case (2 hours)**
+**3.4.3 RenderNextScheduledMedia Use Case (2 hours)** ✅
 ```typescript
 // src/modules/Stage/application/use-cases/RenderNextScheduledMedia.use-case.ts
 export class RenderNextScheduledMediaUseCase {
   async execute(): Promise<void> {
-    // Get available stage
-    // Get next media from schedule
-    // Create OBS sources
-    // Set stage in use
-    // Format and position media
+    // Get available stage ✅
+    // Get next media from schedule (using nextPeekIndex) ✅
+    // Create OBS sources ✅
+    // Set stage in use ✅
+    // Format and position media ✅
+    // Add stage to queue (for startSchedule) ✅
+    // Advance peek index to prevent duplicate rendering ✅
   }
 }
 ```
@@ -249,10 +268,11 @@ export class RenderNextScheduledMediaUseCase {
 // src/modules/Stage/application/use-cases/StartSchedule.use-case.ts
 export class StartScheduleUseCase {
   async execute(): Promise<void> {
-    // Get next stage from queue ✅
-    // Get first media from schedule ✅
+    // Get next stage from queue (ALWAYS from queue, not available stages) ✅
+    // Get first media from schedule (peek from nextPeekIndex if stage queue empty) ✅
     // Start media playback ✅
     // Change to stage scene ✅
+    // Hide other sources in scene (only one visible at a time) ✅
     // Schedule next media cron job (optional - can be added later)
   }
 }

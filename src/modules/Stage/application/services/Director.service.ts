@@ -82,6 +82,36 @@ export class DirectorService {
   }
 
   /**
+   * Start schedule (assumes schedule is already set and media is already rendered)
+   * This is used after renderNextMedia has been called
+   */
+  async startSchedule(): Promise<void> {
+    if (!this.currentSchedule) {
+      throw new Error('No schedule available to start')
+    }
+
+    if (this.isStreaming) {
+      this.logger.warn('Stream is already running')
+      return
+    }
+
+    try {
+      const startedStage = await this.startScheduleUseCase.execute(this.currentSchedule, this.stages)
+
+      if (startedStage) {
+        this.currentStage = startedStage
+        this.isStreaming = true
+        this.logger.log(`Schedule started on stage ${startedStage.stageNumber}`)
+      } else {
+        throw new Error('Failed to start schedule - no available stage or media')
+      }
+    } catch (error) {
+      this.logger.error('Error starting schedule', error)
+      throw error
+    }
+  }
+
+  /**
    * Stop streaming
    */
   async stopStreaming(): Promise<void> {
@@ -213,4 +243,3 @@ export class DirectorService {
     return this.currentStage
   }
 }
-

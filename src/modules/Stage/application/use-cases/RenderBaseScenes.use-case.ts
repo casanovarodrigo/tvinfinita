@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common'
 import { OBSService } from '#stage/infra/services/OBS.service'
+import { SceneService } from '#stage/infra/services/OBS/Scene.service'
+import { OBSPriorityQueueService, OBSMethodType } from '#stage/infra/services/OBS/OBSPriorityQueue.service'
 import { Logger } from '@nestjs/common'
 import * as path from 'path'
+import {
+  BASE_SCENE,
+  STARTING_STREAM_SCENE,
+  TECHNICAL_BREAK_SCENE,
+  OFFLINE_SCENE,
+} from '#stage/domain/constants/stage.constants'
 
 /**
  * RenderBaseScenes Use Case
@@ -11,10 +19,15 @@ import * as path from 'path'
 export class RenderBaseScenesUseCase {
   private readonly logger = new Logger(RenderBaseScenesUseCase.name)
 
-  constructor(private readonly obsService: OBSService) {}
+  constructor(
+    private readonly obsService: OBSService,
+    private readonly sceneService: SceneService,
+    private readonly obsPriorityQueue: OBSPriorityQueueService
+  ) {}
 
   /**
    * Execute the render base scenes use case
+   * Deletes all existing scenes and recreates them for better reproducibility
    */
   async execute(): Promise<void> {
     this.logger.log('Rendering base scenes...')
@@ -24,6 +37,13 @@ export class RenderBaseScenesUseCase {
 
       // Set scene collection (or create if doesn't exist)
       await this.setSceneCollection(obs)
+
+      // Create "base" scene first (always needed for safe deletion)
+      await this.createBaseScene(obs)
+
+      // Delete all existing scenes before recreating (for reproducibility)
+      // This will switch to "base" scene first to ensure safe deletion
+      await this.deleteAllScenes(obs)
 
       // Create base scenes
       await this.createBaseScenes(obs)
@@ -41,6 +61,95 @@ export class RenderBaseScenesUseCase {
     } catch (error) {
       this.logger.error('Error rendering base scenes', error)
       throw error
+    }
+  }
+
+  /**
+   * Create the "base" scene - a permanent scene used for safe deletion
+   * This scene is always available and never deleted
+   */
+  private async createBaseScene(obs: any): Promise<void> {
+    try {
+      // Check if base scene already exists
+      const scenes = await obs.call('GetSceneList')
+      const baseSceneExists = scenes.scenes.some((s: any) => s.sceneName === BASE_SCENE)
+
+      if (!baseSceneExists) {
+        this.obsPriorityQueue.pushToQueue(OBSMethodType.PREPARE_BASE_SCENES_SOURCE, async () => {
+          await obs.call('CreateScene', { sceneName: BASE_SCENE })
+          this.logger.log(`Created base scene: ${BASE_SCENE}`)
+        })
+        await this.obsPriorityQueue.waitForQueueEmpty(30000)
+      } else {
+        this.logger.log(`Base scene ${BASE_SCENE} already exists`)
+      }
+    } catch (error) {
+      this.logger.warn(`Could not create base scene ${BASE_SCENE}`, error)
+    }
+  }
+
+  /**
+   * Delete all scenes that we manage (base scenes + stage scenes)
+   * This ensures a clean state for reproducibility
+   * Always switches to "base" scene first to ensure safe deletion
+   * Uses OBS Priority Queue to manage deletion order and timing
+   */
+  private async deleteAllScenes(obs: any): Promise<void> {
+    this.logger.log('Deleting existing scenes...')
+
+    try {
+      // Always switch to "base" scene first for safe deletion
+      // This ensures OBS always has at least one scene (the base scene)
+      this.obsPriorityQueue.pushToQueue(OBSMethodType.CHANGE_SYS_STAGE_FOCUS, async () => {
+        await obs.call('SetCurrentProgramScene', { sceneName: BASE_SCENE })
+        this.logger.log(`Switched to base scene: ${BASE_SCENE} for safe deletion`)
+      })
+      await this.obsPriorityQueue.waitForQueueEmpty(30000)
+
+      // Get all scenes
+      const scenes = await obs.call('GetSceneList')
+      const allScenes = (scenes.scenes as any[]) || []
+
+      // Define scenes we manage (excluding the permanent "base" scene)
+      const managedScenes = [
+        STARTING_STREAM_SCENE,
+        TECHNICAL_BREAK_SCENE,
+        OFFLINE_SCENE,
+        'stage_01',
+        'stage_02',
+        'stage_03',
+        'stage_04',
+      ]
+
+      // Delete only the scenes we manage (never delete "base" scene)
+      const scenesToDelete = allScenes
+        .map((s) => s.sceneName)
+        .filter((name) => managedScenes.includes(name) && name !== BASE_SCENE)
+
+      if (scenesToDelete.length > 0) {
+        // Queue all scene deletions using priority queue
+        for (const sceneName of scenesToDelete) {
+          this.obsPriorityQueue.pushToQueue(OBSMethodType.DELETE_SCENE, async () => {
+            try {
+              await this.sceneService.deleteScene(sceneName)
+              this.logger.log(`Queued deletion of scene: ${sceneName}`)
+            } catch (error) {
+              this.logger.warn(`Could not delete scene ${sceneName}`, error)
+            }
+          })
+        }
+
+        this.logger.log(`Queued deletion of ${scenesToDelete.length} existing scene(s)`)
+
+        // Wait for all deletions to complete before proceeding
+        await this.obsPriorityQueue.waitForQueueEmpty(30000)
+        this.logger.log('Scene deletions completed')
+      } else {
+        this.logger.log('No existing scenes to delete')
+      }
+    } catch (error) {
+      this.logger.warn('Error deleting existing scenes', error)
+      // Continue even if deletion fails - we'll try to create scenes anyway
     }
   }
 
@@ -75,50 +184,47 @@ export class RenderBaseScenesUseCase {
 
   /**
    * Create base scenes: starting-stream, technical-break, offline
+   * Uses OBS Priority Queue for scene creation
    */
   private async createBaseScenes(obs: any): Promise<void> {
     const baseScenes = ['starting-stream', 'technical-break', 'offline']
 
+    // Queue all scene creations
     for (const sceneName of baseScenes) {
-      try {
-        // Check if scene exists
-        const scenes = await obs.call('GetSceneList')
-        const exists = scenes.scenes.some((s: any) => s.sceneName === sceneName)
-
-        if (!exists) {
+      this.obsPriorityQueue.pushToQueue(OBSMethodType.PREPARE_BASE_SCENES_SOURCE, async () => {
+        try {
           await obs.call('CreateScene', { sceneName })
           this.logger.log(`Created scene: ${sceneName}`)
-        } else {
-          this.logger.log(`Scene already exists: ${sceneName}`)
+        } catch (error) {
+          this.logger.warn(`Could not create scene ${sceneName}`, error)
         }
-      } catch (error) {
-        this.logger.warn(`Could not create scene ${sceneName}`, error)
-      }
+      })
     }
+
+    // Wait for all scene creations to complete
+    await this.obsPriorityQueue.waitForQueueEmpty(30000)
   }
 
   /**
    * Create stage scenes: stage_01, stage_02, stage_03, stage_04
+   * Uses OBS Priority Queue for scene creation
    */
   private async createStageScenes(obs: any): Promise<void> {
+    // Queue all stage scene creations
     for (let i = 1; i <= 4; i++) {
       const sceneName = `stage_0${i}`
-
-      try {
-        // Check if scene exists
-        const scenes = await obs.call('GetSceneList')
-        const exists = scenes.scenes.some((s: any) => s.sceneName === sceneName)
-
-        if (!exists) {
+      this.obsPriorityQueue.pushToQueue(OBSMethodType.PREPARE_BASE_SCENES_SOURCE, async () => {
+        try {
           await obs.call('CreateScene', { sceneName })
           this.logger.log(`Created stage scene: ${sceneName}`)
-        } else {
-          this.logger.log(`Stage scene already exists: ${sceneName}`)
+        } catch (error) {
+          this.logger.warn(`Could not create stage scene ${sceneName}`, error)
         }
-      } catch (error) {
-        this.logger.warn(`Could not create stage scene ${sceneName}`, error)
-      }
+      })
     }
+
+    // Wait for all stage scene creations to complete
+    await this.obsPriorityQueue.waitForQueueEmpty(30000)
   }
 
   /**
@@ -188,7 +294,9 @@ export class RenderBaseScenesUseCase {
               },
             })
 
-            this.logger.log(`Created background image source: ${sourceName} in scene: ${sceneName} with image: ${imagePath}`)
+            this.logger.log(
+              `Created background image source: ${sourceName} in scene: ${sceneName} with image: ${imagePath}`
+            )
           } else {
             // Update existing source with the image file path
             await obs.call('SetInputSettings', {
@@ -198,7 +306,9 @@ export class RenderBaseScenesUseCase {
               },
             })
 
-            this.logger.log(`Updated background image source: ${sourceName} in scene: ${sceneName} with image: ${imagePath}`)
+            this.logger.log(
+              `Updated background image source: ${sourceName} in scene: ${sceneName} with image: ${imagePath}`
+            )
           }
         } catch (error) {
           this.logger.warn(`Could not create background image for scene ${sceneName}`, error)

@@ -8,6 +8,13 @@ import { RenderNextScheduledMediaUseCase } from './application/use-cases/RenderN
 import { StartScheduleUseCase } from './application/use-cases/StartSchedule.use-case'
 import { NextMediaUseCase } from './application/use-cases/NextMedia.use-case'
 import { OBSService } from './infra/services/OBS.service'
+import { SceneItemsService } from './infra/services/OBS/SceneItems.service'
+import { SceneService } from './infra/services/OBS/Scene.service'
+import { SourcesService } from './infra/services/OBS/Sources.service'
+import { MediaControlService } from './infra/services/OBS/MediaControl.service'
+import { SceneCollectionsService } from './infra/services/OBS/SceneCollections.service'
+import { OutputService } from './infra/services/OBS/Output.service'
+import { OBSPriorityQueueService } from './infra/services/OBS/OBSPriorityQueue.service'
 import { MediaCatalogModule } from '#mediaCatalog/MediaCatalog.module'
 
 @Module({
@@ -15,6 +22,13 @@ import { MediaCatalogModule } from '#mediaCatalog/MediaCatalog.module'
   controllers: [StageController],
   providers: [
     OBSService,
+    SceneItemsService,
+    SceneService,
+    SourcesService,
+    MediaControlService,
+    SceneCollectionsService,
+    OutputService,
+    OBSPriorityQueueService,
     PrepareStreamUseCase,
     RenderBaseScenesUseCase,
     RenderNextScheduledMediaUseCase,
@@ -25,4 +39,3 @@ import { MediaCatalogModule } from '#mediaCatalog/MediaCatalog.module'
   exports: [DirectorService, OBSService],
 })
 export class StageModule {}
-

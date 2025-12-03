@@ -1,5 +1,14 @@
 import * as fs from 'fs'
+import { Injectable, Optional, Inject } from '@nestjs/common'
 import { getVideoMetadata } from '#mediaCatalog/infra/helpers/video'
+import { MediaTitleRepository } from '../MediaTitle.repository'
+import { TVShowMediaRepository } from '../TVShowMedia.repository'
+import { PlaylistRepository } from '../Playlist.repository'
+import { MediaTitle } from '#mediaCatalog/domain/entities/MediaTitle'
+import { Playlist } from '#mediaCatalog/domain/entities/Playlist'
+import { TVShowMedia } from '#mediaCatalog/domain/entities/TVShowMedia'
+import { DomainID } from '#ddd/primitives/domain-id'
+import { ITVShowMediaDTO } from '#mediaCatalog/domain/entities/TVShowMedia/interfaces'
 
 interface IMediaDiscovery {
   createLocalRepositoryFolders: () => void
@@ -44,9 +53,10 @@ interface IEpisodeMetadata {
 interface ITvShowRegistration {
   name: string
   type: 'tvshow'
-  seasonsInfo: IEpisodeMetadata[]
+  seasonsInfo: IEpisodeMetadata[][] // Array of seasons, each season is an array of episodes
 }
 
+@Injectable()
 export class MediaDiscoveryClass implements IMediaDiscovery {
   private storageFolderPath = ''
   private availableTitlesFile = ''
@@ -55,14 +65,16 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
   private allowedFormats = new RegExp(/\.(avi|mkv|mp4)$/)
 
   constructor(
-    storageFolderPath: string = 'storage',
-    availableTitlesFile: string = 'available-titles.json',
-    validatedFile: string = 'validated-titles.json'
+    private readonly mediaTitleRepository: MediaTitleRepository,
+    private readonly tvShowMediaRepository: TVShowMediaRepository,
+    private readonly playlistRepository: PlaylistRepository,
+    @Optional() @Inject('STORAGE_FOLDER_PATH') storageFolderPath?: string,
+    @Optional() @Inject('AVAILABLE_TITLES_FILE') availableTitlesFile?: string,
+    @Optional() @Inject('VALIDATED_FILE') validatedFile?: string
   ) {
-    this.storageFolderPath = storageFolderPath
-    this.availableTitlesFile = availableTitlesFile
-
-    this.validatedFile = validatedFile
+    this.storageFolderPath = storageFolderPath || 'storage'
+    this.availableTitlesFile = availableTitlesFile || 'available-titles.json'
+    this.validatedFile = validatedFile || 'validated-titles.json'
   }
 
   public async createLocalRepositoryFolders(): Promise<void> {
@@ -76,12 +88,11 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
 
   /**
    * Register current available titles using a template accordingly to its type specified in storage/available-titles.json
-   * and save as a new file to storage/validated/at.json
-   * also calls the function to save to firestore db
-   * @returns {Array} List of title objects
+   * Validates and normalizes data, then saves to PostgreSQL via repositories
+   * @returns {Promise<void>}
    * @throws {Error} if available-titles.json file is missing
    */
-  public async registerTitles() {
+  public async registerTitles(): Promise<void> {
     try {
       await fs.promises.access(`${this.storageFolderPath}/${this.availableTitlesFile}`)
     } catch (error) {
@@ -91,46 +102,114 @@ export class MediaDiscoveryClass implements IMediaDiscovery {
       }
     }
 
-    // get all titles
+    // Get all titles from unvalidated source
     const unvalidatedFile = await fs.promises.readFile(
       `${this.storageFolderPath}/${this.availableTitlesFile}`,
       'utf8'
     )
     const list: IAvailableTitle[] = JSON.parse(unvalidatedFile)
 
-    const getTitlesRegistrationInfoPromises = Object.keys(list).map(async (titleIndex) => {
-      let info: ITvShowRegistration
-      if (list[titleIndex].type === 'tvshow')
-        info = await this.getTVShowRegistrationInfo(titleIndex, list[titleIndex])
-      // info = await this.getTVShowRegistrationInfoOld(titleKey, list[titleKey])
+    // Process each title: validate, transform, and persist
+    const registrationPromises = Object.keys(list).map(async (titleIndex) => {
+      const titleObj = list[titleIndex]
+      if (titleObj.type === 'tvshow') {
+        return await this.registerTVShow(titleObj)
+      }
       // TO-DO: implement movie registration pipeline
-      // else if (title.type = 'filme') info = getMovieRegInfo(title)
-      // TO-DO: implement collection registration pipeline. Collections are small like trilogies or jackie chan movies
-      // else if (title.type = 'colecao') info = getCollectionRegInfo(title)
-      return info
+      // else if (title.type === 'movie') return await this.registerMovie(titleObj)
+      // TO-DO: implement collection registration pipeline
+      // else if (title.type === 'collection') return await this.registerCollection(titleObj)
+      return null
     })
 
-    try {
-      // console.log('list', list)
+    await Promise.all(registrationPromises)
+  }
 
-      const titleList = await Promise.all(getTitlesRegistrationInfoPromises)
+  /**
+   * Registers a TV Show: validates, wipes existing data, and saves to database
+   */
+  private async registerTVShow(titleObj: IAvailableTitle): Promise<void> {
+    // Step 1: Validate and get registration info
+    const registrationInfo = await this.getTVShowRegistrationInfo(0, titleObj)
 
-      console.log('titleList', titleList)
+    // Step 2: Wipe existing title if it exists
+    await this.wipeExistingTitle(registrationInfo.name)
 
-      // writ to json file
-      if (process.env.NODE_ENV != 'production') {
-        await fs.promises.writeFile(
-          `${this.storageFolderPath}/pretty_${this.validatedFile}`,
-          JSON.stringify(titleList, null, 2),
-          'utf8'
-        )
-      }
-      const json = JSON.stringify(titleList)
-      await fs.promises.writeFile(`${this.storageFolderPath}/${this.validatedFile}`, json, 'utf8')
-      return titleList[0]
-    } catch (error) {
-      console.log('registerTitles', error)
+    // Step 3: Transform validated data to domain entities
+    const { mediaTitle, tvShowMediaList } = await this.transformToDomainEntities(registrationInfo)
+
+    // Step 4: Persist to database
+    // Save everything in a single transaction (TVShowMedia + MediaTitle + Playlist)
+    // This ensures atomicity - if any part fails, everything is rolled back
+    await this.mediaTitleRepository.createWithMedia(mediaTitle, tvShowMediaList)
+  }
+
+  /**
+   * Wipes existing title data completely before creating new one
+   * Delegates to aggregate root repository to handle cascade deletion
+   */
+  private async wipeExistingTitle(title: string): Promise<void> {
+    const existingTitle = await this.mediaTitleRepository.findByTitle(title)
+    if (!existingTitle) {
+      return // Nothing to wipe
     }
+
+    // Aggregate root handles deletion of its entire boundary
+    await this.mediaTitleRepository.delete(existingTitle.id.value)
+  }
+
+  /**
+   * Transforms validated registration info to domain entities
+   */
+  private async transformToDomainEntities(
+    registrationInfo: ITvShowRegistration
+  ): Promise<{ mediaTitle: MediaTitle; tvShowMediaList: TVShowMedia[] }> {
+    // Flatten seasonsInfo (2D array) into single array of episodes
+    const allEpisodes: IEpisodeMetadata[] = []
+    for (const season of registrationInfo.seasonsInfo) {
+      if (Array.isArray(season)) {
+        allEpisodes.push(...season)
+      }
+    }
+
+    // Transform episodes to TVShowMedia domain entities
+    const tvShowMediaList: TVShowMedia[] = []
+    for (const episode of allEpisodes) {
+      const tvShowMediaDTO: ITVShowMediaDTO = {
+        id: DomainID.create().value, // Generate new UUID
+        title: registrationInfo.name,
+        fileName: episode.fileName,
+        folderName: episode.folderName,
+        fileExt: episode.ext,
+        filePath: episode.path,
+        duration: episode.duration,
+        height: episode.height,
+        width: episode.width,
+        ratio: episode.ratio,
+      }
+
+      const result = TVShowMedia.create(tvShowMediaDTO)
+      if (result.isFailure) {
+        throw new Error(`Failed to create TVShowMedia for ${episode.fileName}: ${result.error.message}`)
+      }
+
+      tvShowMediaList.push(result.result)
+    }
+
+    // Create Playlist (anchor/base playlist) with all episodes
+    const playlistDTO = {
+      title: `${registrationInfo.name} - Base Playlist`,
+      isAnchor: true,
+      mediaTitleId: null, // Will be set when MediaTitle is created
+      submedia: tvShowMediaList.map((media) => media.DTO),
+    }
+
+    const basePlaylist = Playlist.create(playlistDTO)
+
+    // Create MediaTitle aggregate root
+    const mediaTitle = MediaTitle.create(registrationInfo.name, basePlaylist, registrationInfo.type)
+
+    return { mediaTitle, tvShowMediaList }
   }
 
   /**

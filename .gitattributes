@@ -1,19 +1,19 @@
-# Auto detect text files and perform LF normalization
-* text=auto eol=lf
+# Auto detect text files and preserve line endings (accept CRLF on Windows)
+* text=auto
 
-# Explicitly declare text files you want to always be normalized and converted to native line endings on checkout
-*.ts text eol=lf
-*.tsx text eol=lf
-*.js text eol=lf
-*.jsx text eol=lf
-*.json text eol=lf
-*.md text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
-*.html text eol=lf
-*.css text eol=lf
-*.scss text eol=lf
-*.less text eol=lf
+# Explicitly declare text files - preserve line endings as they are
+*.ts text
+*.tsx text
+*.js text
+*.jsx text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.html text
+*.css text
+*.scss text
+*.less text
 
 # Denote all files that are truly binary and should not be modified
 *.png binary

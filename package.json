@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prepare": "husky",
     "fixall": "prettier . --write && eslint --fix .",
+    "fix:line-endings": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\" --end-of-line lf",
     "db:clear": "npx ts-node -r tsconfig-paths/register scripts/clear-database.ts",
     "db:reset": "npx ts-node -r tsconfig-paths/register scripts/reset-database.ts"
   },

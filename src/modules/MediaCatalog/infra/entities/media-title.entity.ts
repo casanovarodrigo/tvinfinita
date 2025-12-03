@@ -1,26 +1,23 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm'
-// import { Photo } from '../photos/photo.entity';
+import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm'
+import { PlaylistEntity } from './playlist.entity'
 
-@Entity()
-export class MediaTitle {
-  @PrimaryColumn('char', { length: 100 })
-  id: number
+@Entity('media_title')
+export class MediaTitleEntity {
+  @PrimaryColumn('uuid')
+  id: string
 
-  @PrimaryColumn('char', { length: 150 })
+  @Column('varchar', { length: 150 })
   title: string
 
-  @Column('char', { length: 150 })
-  path: string
+  @Column('varchar', { length: 50 })
+  type: 'tvshow' | 'movie'
 
-  @Column('int')
-  duration: number
+  @OneToMany(() => PlaylistEntity, (playlist) => playlist.mediaTitle)
+  playlists: PlaylistEntity[]
 
-  @Column('char', { length: 20 })
-  mediaType: string
+  @Column('timestamptz', { default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date
 
-  // @Column({ default: true })
-  // isActive: boolean
-
-  // @OneToMany(type => Playlist, playlist => playlist.mediatitle)
-  // playlists: Playlist[];
+  @Column('timestamptz', { default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date
 }

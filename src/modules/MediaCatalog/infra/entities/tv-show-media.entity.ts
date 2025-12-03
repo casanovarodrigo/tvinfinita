@@ -1,41 +1,40 @@
 import { Entity, Column, PrimaryColumn } from 'typeorm'
-// import { Photo } from '../photos/photo.entity';
 
-@Entity()
-export class TVShowMedia {
-  @PrimaryColumn('char', { length: 100 })
-  id: number
+@Entity('tv_show_media')
+export class TVShowMediaEntity {
+  @PrimaryColumn('uuid')
+  id: string
 
-  @PrimaryColumn('char', { length: 150 })
-  name: string
+  @Column('varchar', { length: 150 })
+  title: string
 
-  @PrimaryColumn('char', { length: 50 })
+  @Column('varchar', { length: 50 })
   fileName: string
 
-  @Column('char', { length: 50 })
+  @Column('varchar', { length: 50 })
   folderName: string
 
-  @Column('char', { length: 10 })
+  @Column('varchar', { length: 10 })
   fileExt: string
 
-  @Column('char', { length: 150 })
+  @Column('varchar', { length: 500 })
   filePath: string
 
-  @Column('int')
+  @Column('numeric', { precision: 10, scale: 2 })
   duration: number
 
   @Column('int')
-  height: string
+  height: number
 
   @Column('int')
-  width: string
+  width: number
 
-  @Column('char', { length: 10 })
+  @Column('varchar', { length: 10 })
   ratio: string
 
-  // @Column({ default: true })
-  // isActive: boolean
+  @Column('timestamptz', { default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date
 
-  // @OneToMany(type => Photo, photo => photo.user)
-  // mediaTitle: MediaTitle[];
+  @Column('timestamptz', { default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date
 }

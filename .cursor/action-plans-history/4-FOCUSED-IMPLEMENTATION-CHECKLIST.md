@@ -1,9 +1,15 @@
-# Phase 1: Media Discovery & Registration - Progress Checklist
+# Implementation Progress Checklist
 
 **Created:** 2025-01-22  
 **Based on:** 4-FOCUSED-IMPLEMENTATION-PLAN.md  
-**Status:** In Progress  
+**Status:** Phase 1 ✅ | Phase 2 ✅ | Phase 3+ Pending  
 **Last Updated:** 2025-03-12
+
+---
+
+## Phase 1: Media Discovery & Registration ✅
+
+**Status:** Complete
 
 ---
 
@@ -109,12 +115,71 @@
 
 ---
 
+---
+
+## Phase 2: Media Scheduler (Simple Strategy Only) ✅
+
+**Status:** Complete
+
+### 2.1 Schedule Domain Entity (2 hours)
+- [x] Create `src/modules/MediaCatalog/domain/entities/Schedule/index.ts`
+- [x] Create `src/modules/MediaCatalog/domain/entities/Schedule/interfaces.ts`
+- [x] Implement properties: id, preStart, toPlay, lastScheduledFromTitle, unstarted
+- [x] Implement methods: addToPreStart(), addToToPlay(), shiftToPlay(), peekToPlay()
+- [x] Implement methods: isToPlayEmpty(), updateLastScheduled(), getLastScheduled(), markAsStarted()
+- [x] Implement DTO getter
+- [x] Create unit tests (15 tests, 100% coverage)
+
+### 2.2 Simple Strategy (2 hours)
+- [x] Create `src/modules/MediaCatalog/domain/services/strategies/SimpleStrategy.ts`
+- [x] Implement generate() method with single title logic
+- [x] Implement episode looping when timespan exceeds total duration
+- [x] Implement last scheduled episode tracking
+- [x] Add error handling for multiple titles (throws error)
+- [x] Handle empty playlists gracefully
+- [x] Create unit tests (6 tests, 100% coverage)
+
+### 2.3 MediaScheduler Domain Service (4 hours)
+- [x] Create `src/modules/MediaCatalog/domain/services/MediaScheduler.service.ts`
+- [x] Implement createSchedule() using SimpleStrategy
+- [x] Implement peekNextFromSchedule() - peek without removing
+- [x] Implement shiftSchedule() - remove and return next item
+- [x] Implement isScheduleToPlayEmpty() - check if queue is empty
+- [x] Implement updateLastScheduled() / getLastScheduled() - track last scheduled media
+- [x] Create unit tests (10 tests, 100% coverage)
+- [x] Create integration tests with MediaTitle entities (4 tests)
+
+### Testing
+- [x] Schedule entity tests: 15 tests (100% coverage)
+- [x] SimpleStrategy tests: 6 tests (100% coverage)
+- [x] MediaScheduler service tests: 10 tests (100% coverage)
+- [x] Integration tests: 4 tests
+- [x] **Total Phase 2 tests: 35 tests (all passing)**
+
+### Code Quality
+- [x] All tests passing
+- [x] Build successful
+- [x] Lint passing
+- [x] No TypeScript errors
+- [x] 100% coverage on all Phase 2 components
+
+---
+
 ## 📝 Notes
 
+### Phase 1 Notes
 - Repository foundation is complete and fully integrated
 - Mapper pattern established and working with junction tables
 - All entities aligned with value object constraints
 - Database schema uses proper relationships (no JSONB for submedia)
 - All aggregate operations are transactional
 - Junction table follows naming convention: `[Entity1][Entity2]JunctionEntity`
+
+### Phase 2 Notes
+- Schedule entity follows DDD patterns with immutable getters
+- SimpleStrategy is the only strategy implemented (others deferred)
+- MediaScheduler service uses static methods (domain service pattern)
+- All components have 100% test coverage
+- Integration tests verify full flow with MediaTitle entities
+- Schedule uses Map for lastScheduledFromTitle for efficient lookups
 

@@ -1,5 +1,8 @@
 import * as fs from 'fs'
 import { MediaDiscoveryClass } from './MediaDiscovery'
+import { MediaTitleRepository } from '../MediaTitle.repository'
+import { TVShowMediaRepository } from '../TVShowMedia.repository'
+import { PlaylistRepository } from '../Playlist.repository'
 
 describe('MediaDiscovery', () => {
   const testFolderPath = 'storage/test'
@@ -7,11 +10,52 @@ describe('MediaDiscovery', () => {
   const testValidatedTitles = 'validated-titles.json'
 
   let MediaDiscovery: MediaDiscoveryClass = null
-  beforeAll(async () => {
-    // if (fs.existsSync(testFolderPath))
-    // await fs.promises.rm('storage/test', { recursive: true })
+  let mockMediaTitleRepository: jest.Mocked<MediaTitleRepository>
+  let mockTVShowMediaRepository: jest.Mocked<TVShowMediaRepository>
+  let mockPlaylistRepository: jest.Mocked<PlaylistRepository>
 
-    MediaDiscovery = new MediaDiscoveryClass(testFolderPath, testAvailableTitles, testValidatedTitles)
+  beforeAll(async () => {
+    // Create mocks for repositories
+    mockMediaTitleRepository = {
+      create: jest.fn(),
+      createWithMedia: jest.fn(),
+      findById: jest.fn(),
+      findByTitle: jest.fn(),
+      findAll: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    } as any
+
+    mockTVShowMediaRepository = {
+      create: jest.fn(),
+      createMany: jest.fn(),
+      findById: jest.fn(),
+      findByFilePath: jest.fn(),
+      findAll: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn(),
+    } as any
+
+    mockPlaylistRepository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      findByMediaTitleId: jest.fn(),
+      findAll: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn(),
+    } as any
+
+    // Create instance with mocked dependencies and injected string values
+    MediaDiscovery = new MediaDiscoveryClass(
+      mockMediaTitleRepository,
+      mockTVShowMediaRepository,
+      mockPlaylistRepository,
+      testFolderPath,
+      testAvailableTitles,
+      testValidatedTitles
+    )
   })
 
   // afterAll(async () => {

@@ -1,5 +1,4 @@
 import { ITVShowMediaDTO } from '../TVShowMedia/interfaces'
-import { ICollection } from './interfaces'
 import { Playlist } from '.'
 
 describe('Playlist', () => {
@@ -70,9 +69,7 @@ describe('Playlist', () => {
     })
 
     const subMediasAsArray = PlaylistInstance.getSubmediaMapAsArray()
-    const collectionsAsArray = PlaylistInstance.getCollectionMapAsArray()
     expect(subMediasAsArray).toEqual(mediaList)
-    expect(collectionsAsArray).toEqual(undefined)
   })
 
   it('should create a Playlist from a bidimensional folder', () => {
@@ -191,32 +188,14 @@ describe('Playlist', () => {
       },
     ]
 
-    const collectionList: ICollection[] = [
-      {
-        title: 'Temporada 1',
-        order: 0,
-        length: seasonOneFolderAndMediaList.length,
-        submediaList: seasonOneFolderAndMediaList,
-      },
-      {
-        title: 'Temporada 2',
-        order: 1,
-        length: seasonTwoFolderAndMediaList.length,
-        submediaList: seasonTwoFolderAndMediaList,
-      },
-    ]
-
     const PlaylistInstance = Playlist.create({
       title: 'Bob Esponja',
       submedia: [...seasonOneFolderAndMediaList, ...seasonTwoFolderAndMediaList],
-      collections: collectionList,
       isAnchor: true,
       mediaTitleId: 'asdsad',
     })
 
     const subMediasAsArray = PlaylistInstance.getSubmediaMapAsArray()
-    const collectionsAsArray = PlaylistInstance.getCollectionMapAsArray()
     expect(subMediasAsArray).toEqual([...seasonOneFolderAndMediaList, ...seasonTwoFolderAndMediaList])
-    expect(collectionsAsArray).toEqual(collectionList)
   })
 })

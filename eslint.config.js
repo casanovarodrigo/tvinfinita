@@ -56,6 +56,8 @@ module.exports = [
       'dist/**',
       'node_modules/**',
       'coverage/**',
+      'legacy-project/**',
+      'storage/**',
       'eslint.config.js',
       '.eslintrc.js',
       '.eslintrc.json',

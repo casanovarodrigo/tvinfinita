@@ -25,5 +25,6 @@
       "#mediaCatalog/*": ["./src/modules/MediaCatalog/*"],
       "#stage/*": ["./src/modules/Stage/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "dist", "coverage", "legacy-project"]
 }

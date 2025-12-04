@@ -38,3 +38,6 @@ lerna-debug.log*
 /storage/test
 /storage/available-titles.json
 /storage/available-titles-test.json
+
+# temporary legacy project inside for easier cursor access
+/legacy-project

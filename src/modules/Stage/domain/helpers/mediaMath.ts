@@ -64,4 +64,3 @@ export function centerMedia(mediaInfo: IMediaInfo, stageInfo: IStageInfo): { x: 
   const y = (stageInfo.height - mediaInfo.height) / 2
   return { x, y }
 }
-

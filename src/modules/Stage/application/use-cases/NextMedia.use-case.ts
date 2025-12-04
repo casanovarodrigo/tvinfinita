@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { OBSService } from '#stage/infra/services/OBS.service'
+import { SceneItemsService } from '#stage/infra/services/OBS/SceneItems.service'
+import { SceneService } from '#stage/infra/services/OBS/Scene.service'
+import { OBSPriorityQueueService, OBSMethodType } from '#stage/infra/services/OBS/OBSPriorityQueue.service'
+import { MediaFormatterService } from '#stage/domain/services/MediaFormatter.service'
 import { StageManagerService } from '#stage/domain/services/StageManager.service'
 import { MediaSchedulerService } from '#mediaCatalog/domain/services/MediaScheduler.service'
 import { Schedule } from '#mediaCatalog/domain/entities/Schedule'
@@ -9,12 +13,18 @@ import { Logger } from '@nestjs/common'
 /**
  * NextMedia Use Case
  * Handles transition to next media: stops current, adds to history, checks for more media, or generates more schedule
+ * Called by cronjob (ScheduleNextMediaUseCase), uses OBSPQ for all OBS operations
  */
 @Injectable()
 export class NextMediaUseCase {
   private readonly logger = new Logger(NextMediaUseCase.name)
 
-  constructor(private readonly obsService: OBSService) {}
+  constructor(
+    private readonly obsService: OBSService,
+    private readonly sceneItemsService: SceneItemsService,
+    private readonly sceneService: SceneService,
+    private readonly obsPriorityQueueService: OBSPriorityQueueService
+  ) {}
 
   /**
    * Execute the next media use case
@@ -31,8 +41,8 @@ export class NextMediaUseCase {
     this.logger.log(`Moving to next media from stage ${currentStage.stageNumber}...`)
 
     try {
-      // Stop current media playback
-      await this.stopCurrentMedia(currentStage)
+      // Stop current media playback via OBSPQ
+      this.stopCurrentMedia(currentStage)
 
       // Get current media from stage queue
       const currentMedia = currentStage.peekQueue()
@@ -50,7 +60,15 @@ export class NextMediaUseCase {
         // Play next media in same stage
         const nextMedia = currentStage.peekQueue()
         if (nextMedia) {
-          await this.startMediaPlayback(currentStage, nextMedia)
+          // Show next media via OBSPQ
+          const stageName = `stage_0${currentStage.stageNumber}`
+          const sourceName = this.getSourceName(currentStage, nextMedia)
+
+          this.obsPriorityQueueService.pushToQueue(OBSMethodType.SHOW_MEDIA, async () => {
+            await this.sceneItemsService.setProperties(sourceName, { visible: true }, stageName)
+            this.logger.log(`Showing next media in stage ${currentStage.stageNumber}`)
+          })
+
           this.logger.log(`Playing next media in stage ${currentStage.stageNumber}`)
           return { nextStage: currentStage, hasMoreMedia: true }
         }
@@ -70,11 +88,20 @@ export class NextMediaUseCase {
             // Set stage in use
             StageManagerService.setStageInUse(nextStage, [nextMedia])
 
-            // Start playback
-            await this.startMediaPlayback(nextStage, nextMedia)
+            const stageName = `stage_0${nextStage.stageNumber}`
+            const sourceName = this.getSourceName(nextStage, nextMedia)
 
-            // Change to stage scene
-            await this.changeToStageScene(nextStage)
+            // Show media and change scene via OBSPQ
+            this.obsPriorityQueueService.pushToQueue(OBSMethodType.SHOW_MEDIA, async () => {
+              await this.sceneItemsService.setProperties(sourceName, { visible: true }, stageName)
+              this.logger.log(`Showing media on stage ${nextStage.stageNumber}`)
+            })
+
+            this.obsPriorityQueueService.pushToQueue(OBSMethodType.CHANGE_STAGE_FOCUS, async () => {
+              await this.sceneService.setScene(stageName)
+              StageManagerService.setStageOnScreen(nextStage)
+              this.logger.log(`Changed scene to ${stageName}`)
+            })
 
             // Update last scheduled
             MediaSchedulerService.updateLastScheduled(schedule, nextMedia.id || '', nextMedia)
@@ -95,75 +122,34 @@ export class NextMediaUseCase {
   }
 
   /**
-   * Stop current media playback
+   * Stop current media playback via OBSPQ
    */
-  private async stopCurrentMedia(stage: Stage): Promise<void> {
-    const obs = await this.obsService.getSocket()
-
-    try {
-      // Get current media from stage
-      const currentMedia = stage.peekQueue()
-      if (!currentMedia) {
-        return
-      }
-
-      const sourceName = `stage_0${stage.stageNumber}_0_${currentMedia.fileName
-        .replace(/\.[^.]+$/, '')
-        .toLowerCase()}`
-
-      // Stop media playback
-      await obs.call('TriggerMediaInputAction', {
-        inputName: sourceName,
-        mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP',
-      })
-
-      this.logger.log(`Stopped playback for ${sourceName}`)
-    } catch (error) {
-      this.logger.warn(`Error stopping media on stage ${stage.stageNumber}`, error)
-      // Don't throw, continue with next steps
+  private stopCurrentMedia(stage: Stage): void {
+    const currentMedia = stage.peekQueue()
+    if (!currentMedia) {
+      return
     }
-  }
 
-  /**
-   * Start media playback in OBS
-   */
-  private async startMediaPlayback(stage: Stage, media: any): Promise<void> {
-    const obs = await this.obsService.getSocket()
-    const sourceName = `stage_0${stage.stageNumber}_0_${media.fileName.replace(/\.[^.]+$/, '').toLowerCase()}`
-
-    try {
-      // Trigger media source to play
-      await obs.call('TriggerMediaInputAction', {
-        inputName: sourceName,
-        mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART',
-      })
-
-      this.logger.log(`Started playback for ${sourceName}`)
-    } catch (error) {
-      this.logger.error(`Error starting media playback for ${sourceName}`, error)
-      throw error
-    }
-  }
-
-  /**
-   * Change OBS to the stage scene
-   */
-  private async changeToStageScene(stage: Stage): Promise<void> {
-    const obs = await this.obsService.getSocket()
     const stageName = `stage_0${stage.stageNumber}`
+    const sourceName = this.getSourceName(stage, currentMedia)
 
-    try {
-      await obs.call('SetCurrentProgramScene', {
-        sceneName: stageName,
-      })
+    // Hide media via OBSPQ
+    this.obsPriorityQueueService.pushToQueue(OBSMethodType.HIDE_MEDIA, async () => {
+      await this.sceneItemsService.setProperties(sourceName, { visible: false }, stageName)
+      this.logger.log(`Stopped/hidden media: ${sourceName} on stage ${stage.stageNumber}`)
+    })
+  }
 
-      // Set stage status to on_screen
-      StageManagerService.setStageOnScreen(stage)
-
-      this.logger.log(`Changed to scene: ${stageName}`)
-    } catch (error) {
-      this.logger.error(`Error changing to scene ${stageName}`, error)
-      throw error
-    }
+  /**
+   * Get source name from stage and media
+   */
+  private getSourceName(stage: Stage, media: any): string {
+    // Use MediaFormatterService to get the correct source name format
+    const stageName = `stage_0${stage.stageNumber}`
+    const formatted = MediaFormatterService.formatMediaForObs([media], stageName)
+    return (
+      formatted[0]?.sourceName ||
+      `stage_0${stage.stageNumber}_0_${media.fileName.replace(/\.[^.]+$/, '').toLowerCase()}`
+    )
   }
 }

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { OBSService } from '#stage/infra/services/OBS.service'
 import { SceneItemsService } from '#stage/infra/services/OBS/SceneItems.service'
+import { SourcesService } from '#stage/infra/services/OBS/Sources.service'
+import { OBSPriorityQueueService, OBSMethodType } from '#stage/infra/services/OBS/OBSPriorityQueue.service'
 import { StageManagerService } from '#stage/domain/services/StageManager.service'
 import { MediaFormatterService } from '#stage/domain/services/MediaFormatter.service'
 import { MediaSchedulerService } from '#mediaCatalog/domain/services/MediaScheduler.service'
@@ -9,10 +11,13 @@ import { Stage } from '#stage/domain/entities/Stage'
 import { Logger } from '@nestjs/common'
 import { STAGE_INFO } from '#stage/domain/constants/stage.constants'
 import { ITVShowMediaDTO } from '#mediaCatalog/domain/entities/TVShowMedia/interfaces'
+import { ScheduleNextMediaUseCase } from './ScheduleNextMedia.use-case'
+import { ScheduleMediaTransitionUseCase } from './ScheduleMediaTransition.use-case'
 
 /**
  * StartSchedule Use Case
- * Starts the schedule by getting next stage from queue, getting first media, starting playback, and changing to stage scene
+ * Starts the schedule by getting next stage from queue, getting first media, starting playback
+ * Scene change happens via cronjob (CHANGE_MEDIA_FOCUS_AND_STAGE)
  */
 @Injectable()
 export class StartScheduleUseCase {
@@ -20,7 +25,11 @@ export class StartScheduleUseCase {
 
   constructor(
     private readonly obsService: OBSService,
-    private readonly sceneItemsService: SceneItemsService
+    private readonly sceneItemsService: SceneItemsService,
+    private readonly sourcesService: SourcesService,
+    private readonly obsPriorityQueueService: OBSPriorityQueueService,
+    private readonly scheduleNextMediaUseCase: ScheduleNextMediaUseCase,
+    private readonly scheduleMediaTransitionUseCase: ScheduleMediaTransitionUseCase
   ) {}
 
   /**
@@ -90,22 +99,55 @@ export class StartScheduleUseCase {
       const stageName = `stage_0${stage.stageNumber}`
       const obsSources = MediaFormatterService.formatMediaForObs([firstMedia], stageName)
 
-      await this.createOBSSources(obsSources, stageName)
+      // Convert to SourcesService format for batch creation
+      const sourceConfigs = obsSources.map((source) => ({
+        sourceName: source.sourceName,
+        sourceKind: source.sourceType,
+        sceneName: stageName,
+        sourceSettings: source.sourceSettings,
+        setVisible: false, // Will be made visible by cronjob
+      }))
+
+      // Create sources via OBSPQ
+      this.obsPriorityQueueService.pushToQueue(OBSMethodType.BATCH_MEDIUM_CREATE_SOURCE, async () => {
+        await this.sourcesService.batchCreate(sourceConfigs)
+      })
 
       const activeSource = obsSources[0]
-      await this.hideOtherSourcesInScene(stageName, activeSource.sourceName)
 
-      await this.setMediaSourceProperties(activeSource, stageName)
+      // Hide other sources via OBSPQ
+      this.hideOtherSourcesInScene(stageName, activeSource.sourceName)
+
+      // Set media properties via OBSPQ
+      this.obsPriorityQueueService.pushToQueue(OBSMethodType.CHANGE_MEDIA_PROPERTIES, async () => {
+        await this.setMediaSourceProperties(activeSource, stageName)
+      })
 
       StageManagerService.setStageInUse(stage, [firstMedia])
-
-      await this.startMediaPlayback(stage, activeSource.sourceName)
-
-      await this.changeToStageScene(stage)
 
       schedule.markAsStarted()
 
       MediaSchedulerService.updateLastScheduled(schedule, firstMedia.id || '', firstMedia)
+
+      // Schedule the next media transition (show media and change stage)
+      const startTime = 10 // Default start time in seconds
+      await this.scheduleMediaTransitionUseCase.execute({
+        sourceName: activeSource.sourceName,
+        stageName,
+        stageNumber: stage.stageNumber,
+        delaySeconds: startTime,
+        stages: _stages,
+      })
+
+      // Schedule the next media cronjob
+      await this.scheduleNextMediaUseCase.execute({
+        schedule,
+        currentStage: stage,
+        stages: _stages,
+        mediaDuration: firstMedia.duration || 0,
+        startTime,
+        calibration: 5, // Start schedule lag calibration
+      })
 
       this.logger.log(`Schedule started on stage ${stage.stageNumber}`)
       return stage
@@ -150,91 +192,34 @@ export class StartScheduleUseCase {
   }
 
   /**
-   * Change OBS to the stage scene
-   */
-  private async changeToStageScene(stage: Stage): Promise<void> {
-    const obs = await this.obsService.getSocket()
-    const stageName = `stage_0${stage.stageNumber}`
-
-    try {
-      await obs.call('SetCurrentProgramScene', {
-        sceneName: stageName,
-      })
-
-      // Set stage status to on_screen
-      StageManagerService.setStageOnScreen(stage)
-
-      this.logger.log(`Changed to scene: ${stageName}`)
-    } catch (error) {
-      this.logger.error(`Error changing to scene ${stageName}`, error)
-      throw error
-    }
-  }
-
-  /**
-   * Create OBS sources in the stage scene
-   */
-  private async createOBSSources(sources: any[], stageName: string): Promise<void> {
-    const obs = await this.obsService.getSocket()
-
-    for (const source of sources) {
-      try {
-        // Check if source already exists
-        const sceneItemList = await obs.call('GetSceneItemList', {
-          sceneName: stageName,
-        })
-
-        const exists = sceneItemList.sceneItems.some((item: any) => item.sourceName === source.sourceName)
-
-        if (!exists) {
-          // Create the input (source)
-          await obs.call('CreateInput', {
-            inputName: source.sourceName,
-            inputKind: source.sourceType,
-            sceneName: stageName,
-            inputSettings: source.sourceSettings,
-          })
-
-          this.logger.log(`Created OBS input: ${source.sourceName} in ${stageName}`)
-        } else {
-          // Update existing input settings
-          await obs.call('SetInputSettings', {
-            inputName: source.sourceName,
-            inputSettings: source.sourceSettings,
-          })
-
-          this.logger.log(`Updated OBS input: ${source.sourceName} in ${stageName}`)
-        }
-      } catch (error) {
-        this.logger.error(`Error creating OBS source ${source.sourceName}`, error)
-        throw error
-      }
-    }
-  }
-
-  /**
    * Hide all other media sources in the scene except the active one
    * This ensures only one source is visible and playing at a time
+   * Uses OBSPQ for hiding operations
    */
-  private async hideOtherSourcesInScene(stageName: string, activeSourceName: string): Promise<void> {
-    try {
-      const obs = await this.obsService.getSocket()
-      const sceneItemList = await obs.call('GetSceneItemList', { sceneName: stageName })
-      const allSources = sceneItemList.sceneItems || []
+  private hideOtherSourcesInScene(stageName: string, activeSourceName: string): void {
+    // Get scene items (read operation - OK to be direct)
+    this.obsService
+      .getSocket()
+      .then(async (obs) => {
+        const sceneItemList = await obs.call('GetSceneItemList', { sceneName: stageName })
+        const allSources = sceneItemList.sceneItems || []
 
-      // Hide all vlc_source sources except the active one
-      for (const item of allSources) {
-        const sourceName = item.sourceName as string
-        const inputKind = item.inputKind as string
-        if (sourceName !== activeSourceName && inputKind === 'vlc_source') {
-          await this.sceneItemsService.setProperties(sourceName, { visible: false }, stageName)
-          this.logger.log(`Hidden source: ${sourceName} in ${stageName}`)
+        // Hide all vlc_source sources except the active one via OBSPQ
+        for (const item of allSources) {
+          const sourceName = item.sourceName as string
+          const inputKind = item.inputKind as string
+          if (sourceName !== activeSourceName && inputKind === 'vlc_source') {
+            this.obsPriorityQueueService.pushToQueue(OBSMethodType.HIDE_MEDIA, async () => {
+              await this.sceneItemsService.setProperties(sourceName, { visible: false }, stageName)
+              this.logger.log(`Hidden source: ${sourceName} in ${stageName}`)
+            })
+          }
         }
-      }
-    } catch (error) {
-      this.logger.warn('Error hiding other sources in scene', error)
-      // Continue even if hiding fails
-    }
+      })
+      .catch((error) => {
+        this.logger.warn('Error getting scene items for hiding', error)
+        // Continue even if getting scene items fails
+      })
   }
 
   /**
@@ -251,7 +236,7 @@ export class StartScheduleUseCase {
       await this.sceneItemsService.setProperties(
         source.sourceName,
         {
-          visible: true,
+          visible: false, // Keep hidden - cronjob will make it visible
           position: {
             x: 0,
             y: 0,

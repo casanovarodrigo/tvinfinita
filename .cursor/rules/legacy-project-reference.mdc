@@ -1,0 +1,26 @@
+# Legacy Project Reference
+
+The `legacy-project` folder in the project root contains the legacy MVP project (vcmanda) that serves as the reference implementation for this project.
+
+## Key Points:
+- **Location**: `./legacy-project/` (project root)
+- **Purpose**: Reference for behavior, and feature logic
+- **When to Use**: When user mentions "legacy project" or asks to check how something was implemented in the legacy MVP
+- **Exclusions**: The folder is excluded from:
+  - TypeScript compilation (tsconfig.json, tsconfig.build.json)
+  - ESLint linting (eslint.config.js)
+  - Git tracking (.gitignore)
+
+## Usage Pattern:
+When implementing features or debugging issues, refer to the legacy project to understand:
+- How features were originally implemented
+- Expected behavior
+- You should follow same feature objective and flow, the patterns in the legacy project are old and should be refactored to the DDD architecture.
+- Integration approaches
+- Cron job scheduling patterns
+- OBS WebSocket usage patterns
+- Media scheduling strategies
+
+Always adapt legacy code to current project standards (DDD, NestJS, TypeScript) rather than copying directly.
+DO NOT link the legacy project code into the new project.
+DO NOT import anything from the legacy project.

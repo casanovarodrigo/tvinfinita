@@ -14,3 +14,9 @@
 - Check TODO comments and remove when implemented
 - When asked "do you understand", don't apply changes - just answer
 
+## Legacy Project Reference
+- The `legacy-project` folder in the project root contains the legacy MVP project (vcmanda) used as a reference for implementation patterns and behavior
+- When the user mentions "legacy project" or asks to check legacy implementation, always refer to the `legacy-project` folder in the current project root
+- This folder is excluded from TypeScript compilation, ESLint, and git tracking
+- The legacy project is the source of truth for understanding how features were implemented in the original MVP
+

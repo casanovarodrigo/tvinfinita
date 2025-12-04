@@ -3,7 +3,8 @@ import { CronJobSchedulerService } from '#stage/infra/services/CronJobScheduler.
 import { NextMediaUseCase } from './NextMedia.use-case'
 import { Schedule } from '#mediaCatalog/domain/entities/Schedule'
 import { Stage } from '#stage/domain/entities/Stage'
-import { Logger } from '@nestjs/common'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 
 export interface IScheduleNextMediaDTO {
   schedule: Schedule
@@ -25,12 +26,15 @@ const ONGOING_SCHEDULE_LAG_CALIBRATION = 1
  */
 @Injectable()
 export class ScheduleNextMediaUseCase {
-  private readonly logger = new Logger(ScheduleNextMediaUseCase.name)
+  private readonly logger: winston.Logger
 
   constructor(
     private readonly cronJobSchedulerService: CronJobSchedulerService,
-    private readonly nextMediaUseCase: NextMediaUseCase
-  ) {}
+    private readonly nextMediaUseCase: NextMediaUseCase,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getCronjobLogger(ScheduleNextMediaUseCase.name)
+  }
 
   /**
    * Execute the schedule next media use case
@@ -49,7 +53,7 @@ export class ScheduleNextMediaUseCase {
     // Calculate seconds until next media should play
     const secondsToAdd = mediaDuration + startTime + calibration
 
-    this.logger.log('Scheduling next media cronjob', {
+    this.logger.info('Scheduling next media cronjob', {
       mediaDuration,
       startTime,
       calibration,
@@ -96,7 +100,7 @@ export class ScheduleNextMediaUseCase {
         context: this,
       })
 
-      this.logger.log('Next media cronjob scheduled successfully', {
+      this.logger.info('Next media cronjob scheduled successfully', {
         secondsToAdd,
         nextExecution: new Date(Date.now() + secondsToAdd * 1000).toISOString(),
       })

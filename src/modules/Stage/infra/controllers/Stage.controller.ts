@@ -1,18 +1,23 @@
-import { Controller, Get, Post, Body, Param, HttpCode, HttpStatus, Logger } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, HttpCode, HttpStatus } from '@nestjs/common'
 import { DirectorService } from '../../application/services/Director.service'
 import { OBSService } from '../services/OBS.service'
 import { MediaTitleRepository } from '#mediaCatalog/infra/repositories/MediaTitle.repository'
 import { MediaSchedulerService } from '#mediaCatalog/domain/services/MediaScheduler.service'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 
 @Controller('api/stage')
 export class StageController {
-  private readonly logger = new Logger(StageController.name)
+  private readonly logger: winston.Logger
 
   constructor(
     private readonly directorService: DirectorService,
     private readonly obsService: OBSService,
-    private readonly mediaTitleRepository: MediaTitleRepository
-  ) {}
+    private readonly mediaTitleRepository: MediaTitleRepository,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getLogger(StageController.name)
+  }
 
   /**
    * Check OBS connection status
@@ -42,7 +47,7 @@ export class StageController {
         message: 'Director service initialized successfully',
       }
     } catch (error) {
-      this.logger.error('Failed to initialize Director service', error)
+      this.logger.error('Failed to initialize Director service', { error })
       return {
         success: false,
         message: error.message || 'Failed to initialize Director service',
@@ -351,12 +356,12 @@ export class StageController {
   }> {
     try {
       // Step 1: Initialize stages (prepare OBS scenes and stages 1-4)
-      this.logger.log('Step 1: Initializing stages...')
+      this.logger.info('Step 1: Initializing stages...')
       await this.directorService.initialize()
       const stagesInitialized = true
 
       // Step 2: Get MediaTitle and create schedule
-      this.logger.log('Step 2: Creating schedule...')
+      this.logger.info('Step 2: Creating schedule...')
       const mediaTitle = await this.mediaTitleRepository.findById(mediaTitleId)
       if (!mediaTitle) {
         return {
@@ -384,7 +389,7 @@ export class StageController {
       const scheduleCreated = true
 
       // Step 3: Render first medias to available stage
-      this.logger.log('Step 3: Rendering first medias...')
+      this.logger.info('Step 3: Rendering first medias...')
       const renderedStage = await this.directorService.renderNextMedia()
       const scheduledInitialized = renderedStage !== null
 
@@ -399,7 +404,7 @@ export class StageController {
       }
 
       // Step 4: Start schedule and begin playback
-      this.logger.log('Step 4: Starting schedule...')
+      this.logger.info('Step 4: Starting schedule...')
       await this.directorService.startSchedule()
       const scheduledStarted = true
 

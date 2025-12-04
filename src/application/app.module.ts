@@ -6,6 +6,7 @@ import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { MediaCatalogModule } from '#mediaCatalog/MediaCatalog.module'
 import { StageModule } from '#stage/Stage.module'
+import { LoggingModule } from '../infra/logging/logging.module'
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { StageModule } from '#stage/Stage.module'
         POSTGRES_DB: Joi.string().required(),
       }),
     }),
+    LoggingModule,
     PostgresModule,
     MediaCatalogModule,
     StageModule,

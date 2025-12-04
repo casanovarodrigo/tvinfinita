@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common'
 import { OBSService } from '#stage/infra/services/OBS.service'
 import { SceneService } from '#stage/infra/services/OBS/Scene.service'
 import { OBSPriorityQueueService, OBSMethodType } from '#stage/infra/services/OBS/OBSPriorityQueue.service'
-import { Logger } from '@nestjs/common'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 import * as path from 'path'
 import {
   BASE_SCENE,
@@ -17,20 +18,23 @@ import {
  */
 @Injectable()
 export class RenderBaseScenesUseCase {
-  private readonly logger = new Logger(RenderBaseScenesUseCase.name)
+  private readonly logger: winston.Logger
 
   constructor(
     private readonly obsService: OBSService,
     private readonly sceneService: SceneService,
-    private readonly obsPriorityQueue: OBSPriorityQueueService
-  ) {}
+    private readonly obsPriorityQueue: OBSPriorityQueueService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(RenderBaseScenesUseCase.name)
+  }
 
   /**
    * Execute the render base scenes use case
    * Deletes all existing scenes and recreates them for better reproducibility
    */
   async execute(): Promise<void> {
-    this.logger.log('Rendering base scenes...')
+    this.logger.info('Rendering base scenes...')
 
     try {
       const obs = await this.obsService.getSocket()
@@ -57,9 +61,9 @@ export class RenderBaseScenesUseCase {
       // Create chat overlays
       await this.createChatOverlays()
 
-      this.logger.log('Base scenes rendered successfully')
+      this.logger.info('Base scenes rendered successfully')
     } catch (error) {
-      this.logger.error('Error rendering base scenes', error)
+      this.logger.error('Error rendering base scenes', { error })
       throw error
     }
   }
@@ -77,14 +81,14 @@ export class RenderBaseScenesUseCase {
       if (!baseSceneExists) {
         this.obsPriorityQueue.pushToQueue(OBSMethodType.PREPARE_BASE_SCENES_SOURCE, async () => {
           await obs.call('CreateScene', { sceneName: BASE_SCENE })
-          this.logger.log(`Created base scene: ${BASE_SCENE}`)
+          this.logger.info(`Created base scene: ${BASE_SCENE}`)
         })
         await this.obsPriorityQueue.waitForQueueEmpty(30000)
       } else {
-        this.logger.log(`Base scene ${BASE_SCENE} already exists`)
+        this.logger.info(`Base scene ${BASE_SCENE} already exists`)
       }
     } catch (error) {
-      this.logger.warn(`Could not create base scene ${BASE_SCENE}`, error)
+      this.logger.warn(`Could not create base scene ${BASE_SCENE}`, { error })
     }
   }
 
@@ -95,14 +99,14 @@ export class RenderBaseScenesUseCase {
    * Uses OBS Priority Queue to manage deletion order and timing
    */
   private async deleteAllScenes(obs: any): Promise<void> {
-    this.logger.log('Deleting existing scenes...')
+    this.logger.info('Deleting existing scenes...')
 
     try {
       // Always switch to "base" scene first for safe deletion
       // This ensures OBS always has at least one scene (the base scene)
       this.obsPriorityQueue.pushToQueue(OBSMethodType.CHANGE_SYS_STAGE_FOCUS, async () => {
         await obs.call('SetCurrentProgramScene', { sceneName: BASE_SCENE })
-        this.logger.log(`Switched to base scene: ${BASE_SCENE} for safe deletion`)
+        this.logger.info(`Switched to base scene: ${BASE_SCENE} for safe deletion`)
       })
       await this.obsPriorityQueue.waitForQueueEmpty(30000)
 
@@ -132,23 +136,23 @@ export class RenderBaseScenesUseCase {
           this.obsPriorityQueue.pushToQueue(OBSMethodType.DELETE_SCENE, async () => {
             try {
               await this.sceneService.deleteScene(sceneName)
-              this.logger.log(`Queued deletion of scene: ${sceneName}`)
+              this.logger.info(`Queued deletion of scene: ${sceneName}`)
             } catch (error) {
-              this.logger.warn(`Could not delete scene ${sceneName}`, error)
+              this.logger.warn(`Could not delete scene ${sceneName}`, { error })
             }
           })
         }
 
-        this.logger.log(`Queued deletion of ${scenesToDelete.length} existing scene(s)`)
+        this.logger.info(`Queued deletion of ${scenesToDelete.length} existing scene(s)`)
 
         // Wait for all deletions to complete before proceeding
         await this.obsPriorityQueue.waitForQueueEmpty(30000)
-        this.logger.log('Scene deletions completed')
+        this.logger.info('Scene deletions completed')
       } else {
-        this.logger.log('No existing scenes to delete')
+        this.logger.info('No existing scenes to delete')
       }
     } catch (error) {
-      this.logger.warn('Error deleting existing scenes', error)
+      this.logger.warn('Error deleting existing scenes', { error })
       // Continue even if deletion fails - we'll try to create scenes anyway
     }
   }
@@ -169,16 +173,16 @@ export class RenderBaseScenesUseCase {
         await obs.call('SetCurrentSceneCollection', {
           sceneCollectionName: collectionName,
         })
-        this.logger.log(`Created scene collection: ${collectionName}`)
+        this.logger.info(`Created scene collection: ${collectionName}`)
       } else {
         // Set existing collection as current
         await obs.call('SetCurrentSceneCollection', {
           sceneCollectionName: collectionName,
         })
-        this.logger.log(`Using existing scene collection: ${collectionName}`)
+        this.logger.info(`Using existing scene collection: ${collectionName}`)
       }
     } catch (error) {
-      this.logger.warn('Could not set scene collection, using default', error)
+      this.logger.warn('Could not set scene collection, using default', { error })
     }
   }
 
@@ -194,9 +198,9 @@ export class RenderBaseScenesUseCase {
       this.obsPriorityQueue.pushToQueue(OBSMethodType.PREPARE_BASE_SCENES_SOURCE, async () => {
         try {
           await obs.call('CreateScene', { sceneName })
-          this.logger.log(`Created scene: ${sceneName}`)
+          this.logger.info(`Created scene: ${sceneName}`)
         } catch (error) {
-          this.logger.warn(`Could not create scene ${sceneName}`, error)
+          this.logger.warn(`Could not create scene ${sceneName}`, { error })
         }
       })
     }
@@ -216,9 +220,9 @@ export class RenderBaseScenesUseCase {
       this.obsPriorityQueue.pushToQueue(OBSMethodType.PREPARE_BASE_SCENES_SOURCE, async () => {
         try {
           await obs.call('CreateScene', { sceneName })
-          this.logger.log(`Created stage scene: ${sceneName}`)
+          this.logger.info(`Created stage scene: ${sceneName}`)
         } catch (error) {
-          this.logger.warn(`Could not create stage scene ${sceneName}`, error)
+          this.logger.warn(`Could not create stage scene ${sceneName}`, { error })
         }
       })
     }
@@ -233,7 +237,7 @@ export class RenderBaseScenesUseCase {
    * Uses images from assets/scene-props/ folder (copied from legacy vcmanda project)
    */
   private async createBackgroundImages(): Promise<void> {
-    this.logger.log('Creating background images...')
+    this.logger.info('Creating background images...')
 
     try {
       const obs = await this.obsService.getSocket()
@@ -294,7 +298,7 @@ export class RenderBaseScenesUseCase {
               },
             })
 
-            this.logger.log(
+            this.logger.info(
               `Created background image source: ${sourceName} in scene: ${sceneName} with image: ${imagePath}`
             )
           } else {
@@ -306,7 +310,7 @@ export class RenderBaseScenesUseCase {
               },
             })
 
-            this.logger.log(
+            this.logger.info(
               `Updated background image source: ${sourceName} in scene: ${sceneName} with image: ${imagePath}`
             )
           }
@@ -326,7 +330,7 @@ export class RenderBaseScenesUseCase {
    * TODO: Implement when chat overlay system is available
    */
   private async createChatOverlays(): Promise<void> {
-    this.logger.log('Creating chat overlays...')
+    this.logger.info('Creating chat overlays...')
     // Placeholder for chat overlay creation
     // This will be implemented when chat integration is available
   }

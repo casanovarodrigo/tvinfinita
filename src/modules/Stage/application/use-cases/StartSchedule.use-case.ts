@@ -8,7 +8,8 @@ import { MediaFormatterService } from '#stage/domain/services/MediaFormatter.ser
 import { MediaSchedulerService } from '#mediaCatalog/domain/services/MediaScheduler.service'
 import { Schedule } from '#mediaCatalog/domain/entities/Schedule'
 import { Stage } from '#stage/domain/entities/Stage'
-import { Logger } from '@nestjs/common'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 import { STAGE_INFO } from '#stage/domain/constants/stage.constants'
 import { ITVShowMediaDTO } from '#mediaCatalog/domain/entities/TVShowMedia/interfaces'
 import { ScheduleNextMediaUseCase } from './ScheduleNextMedia.use-case'
@@ -21,7 +22,7 @@ import { ScheduleMediaTransitionUseCase } from './ScheduleMediaTransition.use-ca
  */
 @Injectable()
 export class StartScheduleUseCase {
-  private readonly logger = new Logger(StartScheduleUseCase.name)
+  private readonly logger: winston.Logger
 
   constructor(
     private readonly obsService: OBSService,
@@ -29,8 +30,11 @@ export class StartScheduleUseCase {
     private readonly sourcesService: SourcesService,
     private readonly obsPriorityQueueService: OBSPriorityQueueService,
     private readonly scheduleNextMediaUseCase: ScheduleNextMediaUseCase,
-    private readonly scheduleMediaTransitionUseCase: ScheduleMediaTransitionUseCase
-  ) {}
+    private readonly scheduleMediaTransitionUseCase: ScheduleMediaTransitionUseCase,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(StartScheduleUseCase.name)
+  }
 
   /**
    * Execute the start schedule use case
@@ -39,7 +43,7 @@ export class StartScheduleUseCase {
    * @returns The stage that started playing, or null if unable to start
    */
   async execute(schedule: Schedule, _stages: Stage[]): Promise<Stage | null> {
-    this.logger.log('Starting schedule...')
+    this.logger.info('Starting schedule...')
 
     try {
       // Check if schedule has media
@@ -94,7 +98,7 @@ export class StartScheduleUseCase {
         return null
       }
 
-      this.logger.log(`Starting media: ${firstMedia.title} on stage ${stage.stageNumber}`)
+      this.logger.info(`Starting media: ${firstMedia.title} on stage ${stage.stageNumber}`)
 
       const stageName = `stage_0${stage.stageNumber}`
       const obsSources = MediaFormatterService.formatMediaForObs([firstMedia], stageName)
@@ -149,10 +153,10 @@ export class StartScheduleUseCase {
         calibration: 5, // Start schedule lag calibration
       })
 
-      this.logger.log(`Schedule started on stage ${stage.stageNumber}`)
+      this.logger.info(`Schedule started on stage ${stage.stageNumber}`)
       return stage
     } catch (error) {
-      this.logger.error('Error starting schedule', error)
+      this.logger.error('Error starting schedule', { error })
       throw error
     }
   }
@@ -181,12 +185,12 @@ export class StartScheduleUseCase {
           mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART',
         })
 
-        this.logger.log(`Started playback for ${sourceName}`)
+        this.logger.info(`Started playback for ${sourceName}`)
       } else {
         this.logger.warn(`Source ${sourceName} not found in scene ${stageName}`)
       }
     } catch (error) {
-      this.logger.error(`Error starting media playback for ${sourceName}`, error)
+      this.logger.error(`Error starting media playback for ${sourceName}`, { error })
       throw error
     }
   }
@@ -211,13 +215,13 @@ export class StartScheduleUseCase {
           if (sourceName !== activeSourceName && inputKind === 'vlc_source') {
             this.obsPriorityQueueService.pushToQueue(OBSMethodType.HIDE_MEDIA, async () => {
               await this.sceneItemsService.setProperties(sourceName, { visible: false }, stageName)
-              this.logger.log(`Hidden source: ${sourceName} in ${stageName}`)
+              this.logger.info(`Hidden source: ${sourceName} in ${stageName}`)
             })
           }
         }
       })
       .catch((error) => {
-        this.logger.warn('Error getting scene items for hiding', error)
+        this.logger.warn('Error getting scene items for hiding', { error })
         // Continue even if getting scene items fails
       })
   }
@@ -251,9 +255,9 @@ export class StartScheduleUseCase {
         stageName
       )
 
-      this.logger.log(`Set properties for source: ${source.sourceName} in ${stageName}`)
+      this.logger.info(`Set properties for source: ${source.sourceName} in ${stageName}`)
     } catch (error) {
-      this.logger.warn(`Error setting properties for source ${source.sourceName}`, error)
+      this.logger.warn(`Error setting properties for source ${source.sourceName}`, { error })
       throw error
     }
   }

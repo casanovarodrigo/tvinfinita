@@ -8,7 +8,8 @@ import { StageManagerService } from '#stage/domain/services/StageManager.service
 import { MediaSchedulerService } from '#mediaCatalog/domain/services/MediaScheduler.service'
 import { Schedule } from '#mediaCatalog/domain/entities/Schedule'
 import { Stage } from '#stage/domain/entities/Stage'
-import { Logger } from '@nestjs/common'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 
 /**
  * NextMedia Use Case
@@ -17,14 +18,17 @@ import { Logger } from '@nestjs/common'
  */
 @Injectable()
 export class NextMediaUseCase {
-  private readonly logger = new Logger(NextMediaUseCase.name)
+  private readonly logger: winston.Logger
 
   constructor(
     private readonly obsService: OBSService,
     private readonly sceneItemsService: SceneItemsService,
     private readonly sceneService: SceneService,
-    private readonly obsPriorityQueueService: OBSPriorityQueueService
-  ) {}
+    private readonly obsPriorityQueueService: OBSPriorityQueueService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(NextMediaUseCase.name)
+  }
 
   /**
    * Execute the next media use case
@@ -38,7 +42,7 @@ export class NextMediaUseCase {
     currentStage: Stage,
     stages: Stage[]
   ): Promise<{ nextStage: Stage | null; hasMoreMedia: boolean }> {
-    this.logger.log(`Moving to next media from stage ${currentStage.stageNumber}...`)
+    this.logger.info(`Moving to next media from stage ${currentStage.stageNumber}...`)
 
     try {
       // Stop current media playback via OBSPQ
@@ -66,10 +70,10 @@ export class NextMediaUseCase {
 
           this.obsPriorityQueueService.pushToQueue(OBSMethodType.SHOW_MEDIA, async () => {
             await this.sceneItemsService.setProperties(sourceName, { visible: true }, stageName)
-            this.logger.log(`Showing next media in stage ${currentStage.stageNumber}`)
+            this.logger.info(`Showing next media in stage ${currentStage.stageNumber}`)
           })
 
-          this.logger.log(`Playing next media in stage ${currentStage.stageNumber}`)
+          this.logger.info(`Playing next media in stage ${currentStage.stageNumber}`)
           return { nextStage: currentStage, hasMoreMedia: true }
         }
       }
@@ -94,29 +98,29 @@ export class NextMediaUseCase {
             // Show media and change scene via OBSPQ
             this.obsPriorityQueueService.pushToQueue(OBSMethodType.SHOW_MEDIA, async () => {
               await this.sceneItemsService.setProperties(sourceName, { visible: true }, stageName)
-              this.logger.log(`Showing media on stage ${nextStage.stageNumber}`)
+              this.logger.info(`Showing media on stage ${nextStage.stageNumber}`)
             })
 
             this.obsPriorityQueueService.pushToQueue(OBSMethodType.CHANGE_STAGE_FOCUS, async () => {
               await this.sceneService.setScene(stageName)
               StageManagerService.setStageOnScreen(nextStage)
-              this.logger.log(`Changed scene to ${stageName}`)
+              this.logger.info(`Changed scene to ${stageName}`)
             })
 
             // Update last scheduled
             MediaSchedulerService.updateLastScheduled(schedule, nextMedia.id || '', nextMedia)
 
-            this.logger.log(`Playing next media on stage ${nextStage.stageNumber}`)
+            this.logger.info(`Playing next media on stage ${nextStage.stageNumber}`)
             return { nextStage, hasMoreMedia: true }
           }
         }
       }
 
       // No more media available
-      this.logger.log('No more media in schedule')
+      this.logger.info('No more media in schedule')
       return { nextStage: null, hasMoreMedia: false }
     } catch (error) {
-      this.logger.error('Error moving to next media', error)
+      this.logger.error('Error moving to next media', { error })
       throw error
     }
   }
@@ -136,7 +140,7 @@ export class NextMediaUseCase {
     // Hide media via OBSPQ
     this.obsPriorityQueueService.pushToQueue(OBSMethodType.HIDE_MEDIA, async () => {
       await this.sceneItemsService.setProperties(sourceName, { visible: false }, stageName)
-      this.logger.log(`Stopped/hidden media: ${sourceName} on stage ${stage.stageNumber}`)
+      this.logger.info(`Stopped/hidden media: ${sourceName} on stage ${stage.stageNumber}`)
     })
   }
 

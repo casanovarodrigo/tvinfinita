@@ -8,7 +8,8 @@ import { MediaFormatterService } from '#stage/domain/services/MediaFormatter.ser
 import { MediaSchedulerService } from '#mediaCatalog/domain/services/MediaScheduler.service'
 import { Schedule } from '#mediaCatalog/domain/entities/Schedule'
 import { Stage } from '#stage/domain/entities/Stage'
-import { Logger } from '@nestjs/common'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 import { STAGE_INFO, MAX_MEDIA_PER_STAGE } from '#stage/domain/constants/stage.constants'
 
 /**
@@ -17,14 +18,17 @@ import { STAGE_INFO, MAX_MEDIA_PER_STAGE } from '#stage/domain/constants/stage.c
  */
 @Injectable()
 export class RenderNextScheduledMediaUseCase {
-  private readonly logger = new Logger(RenderNextScheduledMediaUseCase.name)
+  private readonly logger: winston.Logger
 
   constructor(
     private readonly obsService: OBSService,
     private readonly sceneItemsService: SceneItemsService,
     private readonly sourcesService: SourcesService,
-    private readonly obsPriorityQueueService: OBSPriorityQueueService
-  ) {}
+    private readonly obsPriorityQueueService: OBSPriorityQueueService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(RenderNextScheduledMediaUseCase.name)
+  }
 
   /**
    * Execute the render next scheduled media use case
@@ -33,7 +37,7 @@ export class RenderNextScheduledMediaUseCase {
    * @returns The stage that was set up with media, or null if no media available
    */
   async execute(schedule: Schedule, stages: Stage[]): Promise<Stage | null> {
-    this.logger.log('Rendering next scheduled media...')
+    this.logger.info('Rendering next scheduled media...')
 
     try {
       // Check if schedule has media
@@ -113,7 +117,7 @@ export class RenderNextScheduledMediaUseCase {
             stageName
           )
 
-          this.logger.log(
+          this.logger.info(
             `Set properties for source: ${source.sourceName} in ${stageName} (visible: ${isVisible}, full screen: ${STAGE_INFO.width}x${STAGE_INFO.height})`
           )
         })
@@ -125,10 +129,10 @@ export class RenderNextScheduledMediaUseCase {
       // Add stage to queue so startSchedule() can use it
       StageManagerService.addStageToQueue(availableStage)
 
-      this.logger.log(`Successfully rendered media on stage ${availableStage.stageNumber}`)
+      this.logger.info(`Successfully rendered media on stage ${availableStage.stageNumber}`)
       return availableStage
     } catch (error) {
-      this.logger.error('Error rendering next scheduled media', error)
+      this.logger.error('Error rendering next scheduled media', { error })
       throw error
     }
   }

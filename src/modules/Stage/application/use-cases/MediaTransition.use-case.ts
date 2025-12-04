@@ -5,7 +5,8 @@ import { SceneService } from '#stage/infra/services/OBS/Scene.service'
 import { OBSService } from '#stage/infra/services/OBS.service'
 import { StageManagerService } from '#stage/domain/services/StageManager.service'
 import { Stage } from '#stage/domain/entities/Stage'
-import { Logger } from '@nestjs/common'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 
 export interface IMediaTransitionDTO {
   sourceName: string
@@ -20,14 +21,17 @@ export interface IMediaTransitionDTO {
  */
 @Injectable()
 export class MediaTransitionUseCase {
-  private readonly logger = new Logger(MediaTransitionUseCase.name)
+  private readonly logger: winston.Logger
 
   constructor(
     private readonly obsPriorityQueueService: OBSPriorityQueueService,
     private readonly sceneItemsService: SceneItemsService,
     private readonly sceneService: SceneService,
-    private readonly obsService: OBSService
-  ) {}
+    private readonly obsService: OBSService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(MediaTransitionUseCase.name)
+  }
 
   /**
    * Execute the media transition use case
@@ -37,7 +41,7 @@ export class MediaTransitionUseCase {
   async execute(dto: IMediaTransitionDTO, stages: Stage[]): Promise<void> {
     const { sourceName, stageName, stageNumber } = dto
 
-    this.logger.log(`Executing media transition: ${sourceName} on stage ${stageNumber}`)
+    this.logger.info(`Executing media transition: ${sourceName} on stage ${stageNumber}`)
 
     try {
       this.obsPriorityQueueService.pushToQueue(OBSMethodType.SHOW_MEDIA, async () => {
@@ -63,17 +67,12 @@ export class MediaTransitionUseCase {
           const stage = StageManagerService.findStageByNumber(stages, stageNumber)
           if (stage) {
             StageManagerService.setStageOnScreen(stage)
-            this.logger.log(`Stage ${stageNumber} set as on screen`)
+            this.logger.info(`Stage ${stageNumber} set as on screen`)
           }
 
-          this.logger.log(`Set media ${sourceName} visible in ${stageName}`)
+          this.logger.info(`Set media ${sourceName} visible in ${stageName}`)
         } catch (error) {
-          this.logger.error(`Error showing media ${sourceName}`, {
-            error: error.message,
-            stack: error.stack,
-            sourceName,
-            stageName,
-          })
+          this.logger.error(`Error showing media ${sourceName}`, { error })
           throw error
         }
       })
@@ -88,25 +87,16 @@ export class MediaTransitionUseCase {
             StageManagerService.setStageOnScreen(stage)
           }
 
-          this.logger.log(`Changed scene to ${stageName} - Stage ${stageNumber} is now on screen`)
+          this.logger.info(`Changed scene to ${stageName} - Stage ${stageNumber} is now on screen`)
         } catch (error) {
-          this.logger.error(`Error changing scene to ${stageName}`, {
-            error: error.message,
-            stack: error.stack,
-            stageName,
-            stageNumber,
-          })
+          this.logger.error(`Error changing scene to ${stageName}`, { error })
           throw error
         }
       })
 
-      this.logger.log(`Media transition commands queued for ${sourceName} on stage ${stageNumber}`)
+      this.logger.info(`Media transition commands queued for ${sourceName} on stage ${stageNumber}`)
     } catch (error) {
-      this.logger.error('Error executing media transition', {
-        error: error.message,
-        stack: error.stack,
-        dto,
-      })
+      this.logger.error('Error executing media transition', { error, dto })
       throw error
     }
   }

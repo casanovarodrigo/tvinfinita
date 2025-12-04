@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { PrepareStreamUseCase } from '../use-cases/PrepareStream.use-case'
 import { RenderNextScheduledMediaUseCase } from '../use-cases/RenderNextScheduledMedia.use-case'
 import { StartScheduleUseCase } from '../use-cases/StartSchedule.use-case'
@@ -7,6 +7,8 @@ import { StageManagerService } from '#stage/domain/services/StageManager.service
 import { MediaSchedulerService } from '#mediaCatalog/domain/services/MediaScheduler.service'
 import { Schedule } from '#mediaCatalog/domain/entities/Schedule'
 import { Stage } from '#stage/domain/entities/Stage'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 
 /**
  * Director Orchestration Service
@@ -14,7 +16,17 @@ import { Stage } from '#stage/domain/entities/Stage'
  */
 @Injectable()
 export class DirectorService {
-  private readonly logger = new Logger(DirectorService.name)
+  private readonly logger: winston.Logger
+
+  constructor(
+    private readonly prepareStreamUseCase: PrepareStreamUseCase,
+    private readonly renderNextScheduledMediaUseCase: RenderNextScheduledMediaUseCase,
+    private readonly startScheduleUseCase: StartScheduleUseCase,
+    private readonly nextMediaUseCase: NextMediaUseCase,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(DirectorService.name)
+  }
 
   // State management
   private currentSchedule: Schedule | null = null
@@ -22,19 +34,12 @@ export class DirectorService {
   private currentStage: Stage | null = null
   private isStreaming = false
 
-  constructor(
-    private readonly prepareStreamUseCase: PrepareStreamUseCase,
-    private readonly renderNextScheduledMediaUseCase: RenderNextScheduledMediaUseCase,
-    private readonly startScheduleUseCase: StartScheduleUseCase,
-    private readonly nextMediaUseCase: NextMediaUseCase
-  ) {}
-
   /**
    * Initialize the director service
    * Prepares stream, initializes stages, and sets up OBS
    */
   async initialize(): Promise<void> {
-    this.logger.log('Initializing Director service...')
+    this.logger.info('Initializing Director service...')
 
     try {
       // Prepare stream (stop cron jobs, render scenes, initialize stages)
@@ -43,9 +48,9 @@ export class DirectorService {
       // Initialize stages
       this.stages = StageManagerService.initializeStages()
 
-      this.logger.log('Director service initialized successfully')
+      this.logger.info('Director service initialized successfully')
     } catch (error) {
-      this.logger.error('Error initializing Director service', error)
+      this.logger.error('Error initializing Director service', { error })
       throw error
     }
   }
@@ -55,7 +60,7 @@ export class DirectorService {
    * @param schedule Schedule to start
    */
   async startStreaming(schedule: Schedule): Promise<void> {
-    this.logger.log('Starting stream...')
+    this.logger.info('Starting stream...')
 
     if (this.isStreaming) {
       this.logger.warn('Stream is already running')
@@ -71,12 +76,12 @@ export class DirectorService {
       if (startedStage) {
         this.currentStage = startedStage
         this.isStreaming = true
-        this.logger.log(`Stream started on stage ${startedStage.stageNumber}`)
+        this.logger.info(`Stream started on stage ${startedStage.stageNumber}`)
       } else {
         throw new Error('Failed to start schedule - no available stage or media')
       }
     } catch (error) {
-      this.logger.error('Error starting stream', error)
+      this.logger.error('Error starting stream', { error })
       throw error
     }
   }
@@ -101,12 +106,12 @@ export class DirectorService {
       if (startedStage) {
         this.currentStage = startedStage
         this.isStreaming = true
-        this.logger.log(`Schedule started on stage ${startedStage.stageNumber}`)
+        this.logger.info(`Schedule started on stage ${startedStage.stageNumber}`)
       } else {
         throw new Error('Failed to start schedule - no available stage or media')
       }
     } catch (error) {
-      this.logger.error('Error starting schedule', error)
+      this.logger.error('Error starting schedule', { error })
       throw error
     }
   }
@@ -115,7 +120,7 @@ export class DirectorService {
    * Stop streaming
    */
   async stopStreaming(): Promise<void> {
-    this.logger.log('Stopping stream...')
+    this.logger.info('Stopping stream...')
 
     if (!this.isStreaming) {
       this.logger.warn('Stream is not running')
@@ -135,9 +140,9 @@ export class DirectorService {
       this.isStreaming = false
       this.currentSchedule = null
 
-      this.logger.log('Stream stopped')
+      this.logger.info('Stream stopped')
     } catch (error) {
-      this.logger.error('Error stopping stream', error)
+      this.logger.error('Error stopping stream', { error })
       throw error
     }
   }
@@ -157,7 +162,7 @@ export class DirectorService {
 
       if (result.nextStage) {
         this.currentStage = result.nextStage
-        this.logger.log(`Moved to next media on stage ${result.nextStage.stageNumber}`)
+        this.logger.info(`Moved to next media on stage ${result.nextStage.stageNumber}`)
       } else if (!result.hasMoreMedia) {
         // No more media, stop streaming
         await this.stopStreaming()
@@ -165,7 +170,7 @@ export class DirectorService {
 
       return { success: true, hasMoreMedia: result.hasMoreMedia }
     } catch (error) {
-      this.logger.error('Error moving to next media', error)
+      this.logger.error('Error moving to next media', { error })
       return { success: false, hasMoreMedia: false }
     }
   }
@@ -184,12 +189,12 @@ export class DirectorService {
       const stage = await this.renderNextScheduledMediaUseCase.execute(this.currentSchedule, this.stages)
 
       if (stage) {
-        this.logger.log(`Rendered next media on stage ${stage.stageNumber}`)
+        this.logger.info(`Rendered next media on stage ${stage.stageNumber}`)
       }
 
       return stage
     } catch (error) {
-      this.logger.error('Error rendering next media', error)
+      this.logger.error('Error rendering next media', { error })
       return null
     }
   }
@@ -226,7 +231,7 @@ export class DirectorService {
    */
   setCurrentSchedule(schedule: Schedule): void {
     this.currentSchedule = schedule
-    this.logger.log('Current schedule updated')
+    this.logger.info('Current schedule updated')
   }
 
   /**

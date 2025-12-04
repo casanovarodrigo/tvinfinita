@@ -1,7 +1,8 @@
 # Focused Implementation Plan: Legacy → DDD Migration
 
 **Created:** 2025-10-22  
-**Based on:** User priorities and requirements  
+**Last Updated:** 2025-12-04  
+**Status:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 2.5 (Enhancements) → Phase 5 → Phase 6 → Phase 7-9 (Not Priority)  
 **Database:** PostgreSQL (migrating from Firestore)  
 **Timeline:** Flexible, incremental development
 
@@ -9,758 +10,712 @@
 
 ## 🎯 Implementation Priority Order
 
-Based on your requirements, here's the reordered plan:
-
-### Phase 1: Media Discovery & Registration ✅
-**Status:** Complete  
+### Phase 1: Media Discovery & Registration ✅ **COMPLETE**
 **Time:** 6 hours
 
-### Phase 2: Media Scheduler (Simple Strategy Only) ✅
-**Status:** Complete  
+**Completed:**
+- ✅ Repository layer (interfaces, implementations, mappers)
+- ✅ TypeORM entities with proper relationships (junction tables)
+- ✅ Database schema refactored (JSONB → relationships)
+- ✅ MediaDiscovery integrated with PostgreSQL
+- ✅ MediaRegistration controller with 3 endpoints
+- ✅ All tests passing (55/55 tests)
+
+### Phase 2: Media Scheduler (Simple Strategy Only) ✅ **COMPLETE**
 **Time:** 8 hours  
 **⚠️ IMPORTANT:** Only implement simple strategy. Other strategies deferred.
 
-### Phase 3: Director + DDD Architecture ✅
-**Status:** Complete  
+**Completed:**
+- ✅ Schedule domain entity with nextPeekIndex tracking
+- ✅ SimpleStrategy implementation (episode looping, last scheduled tracking)
+- ✅ MediaScheduler domain service
+- ✅ All tests passing (35 tests, 100% coverage)
+
+### Phase 3: Director + DDD Architecture ✅ **COMPLETE**
 **Time:** 22 hours  
-**Note:** Core functionality complete. Chat overlays deferred to Phase 9. Background images integrated from legacy project.
+**Note:** Core functionality complete. Chat overlays deferred to Phase 9.
+
+**Completed:**
+- ✅ Stage domain entity
+- ✅ StageManager domain service
+- ✅ MediaFormatter domain service
+- ✅ All 5 director use cases implemented
+- ✅ Director orchestration service
+- ✅ Background images integrated from legacy project
+- ✅ **CronJob Scheduling System** (Phase 3.4.6) - ✅ **COMPLETE**
+
+**Recent Completions (2025-12-04):**
+- ✅ **CronJob Scheduling System** fully implemented
+  - ✅ CronJobSchedulerService with full job lifecycle management
+  - ✅ All scheduling use cases created (ScheduleNextMedia, ScheduleMediaTransition, StopScheduleCronjobs, ListCronJobs)
+  - ✅ MediaTransitionUseCase and NextMediaUseCase updated
+  - ✅ OBSPQ integration verified across all use cases
+  - ✅ Scene changes happen via cronjob → OBSPQ (not immediate)
+  - ✅ Media visibility controlled by cronjob
+  - ✅ Fixed cron v4 compatibility (Date objects for one-time execution)
+  - ✅ Winston logging system integrated
+- ✅ All requirements from API-ROUTES-INVESTIGATION.md met
+- ✅ All requirements from CRONJOB-MIGRATION-PLAN.md Phase 0, 1, and 2 complete
 
 **Recent Bug Fixes (2025-01-22):**
-- ✅ Fixed duplicate episode rendering across stages (added stage queue management)
-- ✅ Fixed sequential rendering (added nextPeekIndex tracking to Schedule entity)
-- ✅ Fixed episode uniqueness in SimpleStrategy (shallow copy instead of same reference)
-- ✅ Fixed source name generation (removed stage prefix, index, and short ID)
+- ✅ Fixed duplicate episode rendering (added stage queue management)
+- ✅ Fixed sequential rendering (added nextPeekIndex tracking)
+- ✅ Fixed episode uniqueness (shallow copy in SimpleStrategy)
+- ✅ Fixed source name generation (removed stage prefix, index, short ID)
 - ✅ Fixed StartSchedule to always use queue (matching legacy behavior)
 
-### Phase 4: OBS Repositories/Models
-**Status:** Not started  
+### Phase 4: OBS Repositories/Models ✅ **COMPLETE**
+**Status:** ✅ **COMPLETE**  
 **Time:** 14 hours  
 **Purpose:** Test OBS integration
 
+**Completed:**
+- ✅ All OBS services implemented (Scene, SceneItems, Sources, MediaControl, SceneCollections, Output)
+- ✅ OBS Priority Queue implemented with priority-based execution and cooldown management
+
+---
+
+## 🔄 **NEW PRIORITY: Phase 2.5 - Media Scheduler Enhancements**
+
+**Status:** ⏸️ **PENDING** | **Time:** 12 hours | **Priority:** HIGH (Before Phase 5)
+
+**Purpose:** Implement auto-append functionality and additional scheduling strategies to prevent playback gaps
+
+### 2.5.1 Auto-Append Media Functionality
+**Implementation Location:** `NextMediaUseCase.execute()` and `MediaSchedulerService`
+
+**Requirements:**
+- [ ] Add `appendToSchedule()` method to `MediaSchedulerService` - Append new schedule to existing schedule's `toPlay` queue
+- [ ] Add `generateSchedule()` method to `MediaSchedulerService` - Generate schedule with strategy selection
+- [ ] Update `NextMediaUseCase` to auto-append when schedule runs out:
+  1. Change scene to `TECHNICAL_BREAK_SCENE` via OBSPQ
+  2. Call `appendToFutureSchedule()` to generate new schedule
+  3. Call `renderNextScheduledMediaToAvailableStage()` to render new media
+  4. Vacate previous stage via OBSPQ
+  5. Call `startSchedule(true)` to continue playback
+- [ ] Ensure continuous media availability (no gaps in playback)
+
+### 2.5.2 Additional Scheduling Strategies
+
+**2.5.2.1 MultipleCommonStrategy**
+- [ ] Create `src/modules/MediaCatalog/domain/services/strategies/MultipleCommonStrategy.ts`
+- [ ] Rotates through multiple titles
+- [ ] Respects `lastScheduledFromTitle` to avoid duplicates
+- [ ] Limits time per title (85% of 1 hour = 51 minutes)
+- [ ] Handles `timespan` and `timespanLimitMinutes` options
+
+**2.5.2.2 MultipleWeightenStrategy**
+- [ ] Create `src/modules/MediaCatalog/domain/services/strategies/MultipleWeightenStrategy.ts`
+- [ ] Similar to MultipleCommonStrategy but uses poll votes for weighted random selection
+- [ ] **Note:** Requires poll system (Phase 8) - **MOCK votes for now**
+- [ ] Create mock vote service/interface that returns equal weights for all titles
+- [ ] Strategy selection logic:
+  - 1 title → SimpleStrategy
+  - >1 title, no votes → MultipleCommonStrategy
+  - >1 title, with votes → MultipleWeightenStrategy (mocked votes)
+
+**2.5.3 Strategy Selection in MediaSchedulerService**
+- [ ] Update `createSchedule()` to select strategy based on:
+  - Number of titles
+  - Poll votes enabled (mocked for now)
+  - Options: `timespan` (default 1.5 hours), `timespanLimitMinutes` (default 10), `votesOn` (default false)
+
+### 2.5.4 Schedule Generation from All Registered Media (Legacy Behavior)
+**Issue:** Current implementation takes a `mediaTitleId` parameter, but legacy generates from ALL registered titles.
+
+**Required Changes:**
+- [ ] Update `MediaSchedulerService.createSchedule()` to:
+  - Accept all registered MediaTitles from repository (not a single ID)
+  - Build `titleCatalogMap` from all registered titles (similar to legacy `this.titleCatalogMap`)
+  - Strategy selection based on total number of registered titles
+- [ ] Update `StageController` endpoints:
+  - [ ] `POST /api/stage/create-schedule` - **NOT STAGE RESPONSIBILITY** - Move to Schedule namespace. Remove `:mediaTitleId` parameter, use all registered titles
+  - [ ] `POST /api/stage/prepare-everything` - **NOT STAGE RESPONSIBILITY** - Move to Director namespace (special dev route). Remove `:mediaTitleId` parameter, use all registered titles
+  - [ ] `POST /api/stage/start/:mediaTitleId` - **NOT STAGE RESPONSIBILITY** - Move to Schedule namespace. Remove `:mediaTitleId` parameter, use all registered titles
+- [ ] Update `DirectorService` methods to work with all titles instead of single title
+- [ ] Ensure `MediaSchedulerService` can access `MediaTitleRepository` to fetch all titles
+
+**Legacy Reference:**
+- Legacy route: `GET /obs/createschedule` - No parameters, uses all registered titles
+- Legacy method: `mediaScheduler.createSchedule(options)` - Uses `this.titleCatalogMap` (all titles)
+
+---
+
 ### Phase 5: API System
-**Status:** Not started  
-**Time:** 10 hours  
-**Purpose:** Test via HTTP endpoints
+**Status:** ⏸️ **PARTIALLY IMPLEMENTED** | **Time:** 10 hours (remaining) | **Purpose:** Complete API endpoints matching legacy project exactly
+
+---
+
+## ⚠️ **CRITICAL: HALT BEFORE IMPLEMENTATION** ⚠️
+
+**🚨 STOP AND ASK USER BEFORE STARTING PHASE 5 IMPLEMENTATION 🚨**
+
+**Before implementing any Phase 5 routes, we MUST discuss and decide on:**
+
+1. **Route Naming Convention:**
+   - Legacy uses `/obs/*`, `/director/*`, `/media/*` (no `/api` prefix)
+   - Current uses `/api/stage/*`, `/api/media/*`
+   - **Question:** Keep `/api` prefix? Use legacy paths exactly? Hybrid approach?
+
+2. **Route Namespaces/Grouping:**
+   - Legacy groups: `/obs/*` (OBS operations), `/director/*` (Director operations), `/media/*` (Media operations)
+   - Current groups: `/api/stage/*`, `/api/media/*`
+   - **Known Responsibilities:**
+     - ⚠️ **Stage namespace** - Only stage-related operations (stage management, rendering media to stages)
+     - ⚠️ **Schedule namespace** - Scheduling operations (`createschedule`, `startschedule`)
+     - ⚠️ **Director namespace** - Director operations (`prepareeverything` - special dev route)
+   - **Approach:**
+     - ✅ **Suggest new namespaces** as needed when patterns emerge during implementation
+     - ✅ **Ask user if unclear** about where a route should belong
+     - ✅ Organize routes by responsibility, not just by legacy grouping
+   - **Question:** How should routes be grouped/namespaced? Match legacy exactly or use NestJS module-based grouping? Should we create new logical groupings (Schedule, OBS, Media, Director, Stage)?
+
+3. **HTTP Methods:**
+   - Legacy uses `GET` for most routes (even mutations like `createschedule`, `startschedule`)
+   - Current uses `POST` for mutations, `GET` for queries
+   - **Question:** Match legacy (GET for everything) or use RESTful conventions (POST for mutations)?
+
+4. **Controller Organization:**
+   - Legacy has: `ObsController`, `DirectorController`, `ApiController`, `MediaRepositoryController`
+   - Current has: `StageController`, `MediaRegistrationController`
+   - **Question:** Create separate controllers matching legacy? Or consolidate into fewer controllers?
+
+5. **Query Parameters vs Body:**
+   - Legacy uses query parameters for most operations (`?sourceName=...`, `?sceneName=...`)
+   - Current uses body for POST requests
+   - **Question:** Match legacy (query params) or use body for complex data?
+
+6. **Response Format:**
+   - Legacy uses middleware with `res.locals.controller.payload`
+   - Current returns direct JSON responses
+   - **Question:** Match legacy response format or keep current NestJS standard responses?
+
+**📋 DECISION CHECKLIST (Complete before implementation):**
+- [ ] Route naming convention decided
+- [ ] Namespace/grouping strategy decided
+- [ ] HTTP method strategy decided
+- [ ] Controller organization decided
+- [ ] Parameter passing strategy decided
+- [ ] Response format decided
+
+**💡 RECOMMENDATION:** Discuss these decisions before starting implementation to avoid rework.
+
+---
+
+**Legacy Route Mapping:**
+
+#### 5.1 OBS Director Routes (ObsController) - ⚠️ **NEEDS UPDATES**
+**Legacy Base:** `/obs/*`
+
+| Legacy Route | Current Route | Status | Notes |
+|-------------|---------------|--------|-------|
+| `GET /obs/preparestages` | `POST /api/stage/initialize` | ✅ | Different method (GET→POST), different path |
+| `GET /obs/createschedule` | `POST /api/stage/create-schedule/:mediaTitleId` | ⚠️ | **NOT STAGE RESPONSIBILITY** - This is scheduling-related, should be in Schedule namespace. **NEEDS UPDATE:** Remove `:mediaTitleId`, use all titles |
+| `GET /obs/initschedule` | `POST /api/stage/init-schedule` | ✅ | Different method (GET→POST) |
+| `GET /obs/startschedule` | `POST /api/stage/start-schedule` | ⚠️ | **NOT STAGE RESPONSIBILITY** - This is scheduling-related, should be in Schedule namespace. Different method (GET→POST) |
+| `GET /obs/stopschedule` | `POST /api/stage/stop` | ✅ | Different method (GET→POST), different path |
+| `GET /obs/nextscheduledmedia` | `POST /api/stage/next` | ✅ | Different method (GET→POST), different path |
+| `GET /obs/showordered` | ❌ **MISSING** | ❌ | Show ordered cronjobs (uses `cronModel.showOrdered`) |
+
+**Required Updates:**
+- [ ] Update route paths to match legacy (`/obs/*` instead of `/api/stage/*`)
+- [ ] Change HTTP methods to GET (legacy uses GET, current uses POST)
+- [ ] **Move `createschedule` to Schedule namespace** (not stage responsibility - it's scheduling-related)
+- [ ] **Move `startschedule` to Schedule namespace** (not stage responsibility - it's scheduling-related)
+- [ ] Remove `:mediaTitleId` from `createschedule` route (use all titles)
+- [ ] Add `GET /obs/showordered?running=true/false` endpoint
+
+**Route Responsibility Notes:**
+- ⚠️ **`createschedule`** - **NOT STAGE RESPONSIBILITY** - This is scheduling-related, should be in Schedule namespace/controller
+- ⚠️ **`startschedule`** - **NOT STAGE RESPONSIBILITY** - This is scheduling-related, should be in Schedule namespace/controller
+- ✅ **Stage namespace** should only control what's related to stages (stage management, rendering media to stages, etc.)
+
+#### 5.2 Director Routes (DirectorController) - ⚠️ **MISSING**
+**Legacy Base:** `/director/*` and `/obs/*`
+
+| Legacy Route | Current Route | Status | Notes |
+|-------------|---------------|--------|-------|
+| `GET /director/prepareeverything` | `POST /api/stage/prepare-everything/:mediaTitleId` | ⚠️ | **SPECIAL DEV ROUTE** - Used only in dev for quick feedback/testing. **NOT STAGE RESPONSIBILITY** - Should be in Director namespace. **NEEDS UPDATE:** Remove `:mediaTitleId`, change to GET, match path |
+| `GET /director/prepareautostart` | ❌ **MISSING** | ❌ | Prepare with auto-start delays (18s, 30s) |
+| `GET /obs/inusestages` | ❌ **MISSING** | ❌ | Get in-use stages info |
+| `GET /obs/playhistory` | ❌ **MISSING** | ❌ | Get play history |
+| `GET /obs/currenthud` | ❌ **MISSING** | ❌ | Serve HUD HTML file |
+
+**Required Implementation:**
+- [ ] `GET /director/prepareeverything` - **SPECIAL DEV ROUTE** - Used only in dev for quick feedback/testing. Remove `:mediaTitleId`, use all titles, change to GET. Should be in Director namespace (not stage)
+- [ ] `GET /director/prepareautostart` - New endpoint with delayed execution
+- [ ] `GET /obs/inusestages` - Get in-use stages (calls `director.getInUseStages()`)
+- [ ] `GET /obs/playhistory` - Get play history (calls `director.getPlayHistory()`)
+- [ ] `GET /obs/currenthud` - Serve HUD HTML file (returns `currentHud.html`)
+
+**Route Responsibility Notes:**
+- ⚠️ **`prepareeverything`** - **SPECIAL DEV ROUTE** - Used only in dev for quick feedback/testing. **NOT STAGE RESPONSIBILITY** - Should be in Director namespace/controller
+
+#### 5.3 Media Control Routes (ApiController) - ❌ **MISSING**
+**Legacy Base:** `/obs/*`
+
+| Legacy Route | Current Route | Status | Notes |
+|-------------|---------------|--------|-------|
+| `GET /obs/pauseplay` | ❌ **MISSING** | ❌ | Pause or play media (query: `sourceName`, `play`) |
+| `GET /obs/restartmedia` | ❌ **MISSING** | ❌ | Restart media (query: `sourceName`) |
+| `GET /obs/stopmedia` | ❌ **MISSING** | ❌ | Stop media (query: `sourceName`) |
+| `GET /obs/nextmedia` | ❌ **MISSING** | ❌ | Next media in playlist (query: `sourceName`) |
+| `GET /obs/previousmedia` | ❌ **MISSING** | ❌ | Previous media in playlist (query: `sourceName`) |
+| `GET /obs/mediaduration` | ❌ **MISSING** | ❌ | Get media duration (query: `sourceName`) |
+| `GET /obs/mediatime` | ❌ **MISSING** | ❌ | Get current media time (query: `sourceName`) |
+| `GET /obs/setmediatime` | ❌ **MISSING** | ❌ | Set media time (query: `sourceName`, `timestamp`) |
+| `GET /obs/mediastate` | ❌ **MISSING** | ❌ | Get media state (query: `sourceName`) |
+| `GET /obs/scrubmedia` | ❌ **MISSING** | ❌ | Scrub media (query: `sourceName`, `timeOffset`) |
+
+**Required Implementation:**
+- [ ] Create `OBSController` with all media control endpoints
+- [ ] All endpoints use GET method with query parameters
+- [ ] Use `MediaControlService` methods (already implemented in Phase 4)
+
+#### 5.4 Scene Collections Routes (ApiController) - ❌ **MISSING**
+**Legacy Base:** `/obs/*`
+
+| Legacy Route | Current Route | Status | Notes |
+|-------------|---------------|--------|-------|
+| `GET /obs/listscenecollections` | ❌ **MISSING** | ❌ | List all scene collections |
+| `GET /obs/currentscenecollection` | ❌ **MISSING** | ❌ | Get current scene collection |
+| `GET /obs/setcurrentscenecollection` | ❌ **MISSING** | ❌ | Set current scene collection (query: `scName`) |
+
+**Required Implementation:**
+- [ ] Add to `OBSController` or create `SceneCollectionsController`
+- [ ] Use `SceneCollectionsService` methods (already implemented in Phase 4)
+
+#### 5.5 Scene Items Routes (ApiController) - ❌ **MISSING**
+**Legacy Base:** `/obs/*`
+
+| Legacy Route | Current Route | Status | Notes |
+|-------------|---------------|--------|-------|
+| `GET /obs/listsceneitems` | ❌ **MISSING** | ❌ | List scene items (query: `sceneName`) |
+| `POST /obs/sceneitemproperties` | ❌ **MISSING** | ❌ | Get scene item properties (body: `item`, `sceneName`) |
+| `POST /obs/setsceneitemproperties` | ❌ **MISSING** | ❌ | Set scene item properties (body: `item`, `updateInfo`, `sceneName`) |
+
+**Required Implementation:**
+- [ ] Add to `OBSController` or create `SceneItemsController`
+- [ ] Use `SceneItemsService` methods (already implemented in Phase 4)
+
+#### 5.6 Sources Routes (ApiController) - ❌ **MISSING**
+**Legacy Base:** `/obs/*`
+
+| Legacy Route | Current Route | Status | Notes |
+|-------------|---------------|--------|-------|
+| `GET /obs/mediasourceslist` | ❌ **MISSING** | ❌ | Get media sources list (current scene) |
+| `GET /obs/sourcesettings` | ❌ **MISSING** | ❌ | Get source settings (query: `sourceName`, `sourceType`) |
+| `GET /obs/sourceslist` | ❌ **MISSING** | ❌ | Get sources list (current collection) |
+| `GET /obs/sourcestypes` | ❌ **MISSING** | ❌ | Get source types list |
+| `GET /obs/sourcestypebyname` | ❌ **MISSING** | ❌ | Get source type by name (query: `displayName`) |
+| `GET /obs/sourcestypebytypeid` | ❌ **MISSING** | ❌ | Get source type by type ID (query: `typeId`) |
+
+**Required Implementation:**
+- [ ] Add to `OBSController` or create `SourcesController`
+- [ ] Use `SourcesService` methods (already implemented in Phase 4)
+
+#### 5.7 Output Routes (ApiController) - ❌ **MISSING**
+**Legacy Base:** `/obs/*`
+
+| Legacy Route | Current Route | Status | Notes |
+|-------------|---------------|--------|-------|
+| `GET /obs/outputlist` | ❌ **MISSING** | ❌ | Get output list |
+
+**Required Implementation:**
+- [ ] Add to `OBSController` or create `OutputController`
+- [ ] Use `OutputService` methods (already implemented in Phase 4)
+
+#### 5.8 Media Repository Routes (MediaRepositoryController) - ⚠️ **PARTIAL**
+**Legacy Base:** `/media/*`
+
+| Legacy Route | Current Route | Status | Notes |
+|-------------|---------------|--------|-------|
+| `GET /media/listavailabletitles` | ❌ **MISSING** | ❌ | List available titles from JSON file |
+| `GET /media/listalltitlessubrepos` | ❌ **MISSING** | ❌ | List all titles with sub-repos |
+| `GET /media/listmediafromtitle` | ❌ **MISSING** | ❌ | List media from title (query: `titleName`) |
+| `GET /media/registertitles` | `POST /api/media/register` | ⚠️ | Different method (GET→POST), different path |
+| `GET /media/savesavailabletitlestodb` | ✅ **INTEGRATED** | ✅ | Part of register endpoint |
+| `GET /media/generatecontent` | ❌ **MISSING** | ❌ | Generate schedule content (calls `mediaScheduler.generateSchedule()`) |
+
+**Required Updates:**
+- [ ] Update route paths to match legacy (`/media/*` instead of `/api/media/*`)
+- [ ] Change HTTP methods to GET where legacy uses GET
+- [ ] Add missing endpoints: `listavailabletitles`, `listalltitlessubrepos`, `listmediafromtitle`, `generatecontent`
+
+#### 5.9 Additional Routes
+- [ ] `GET /api/stage/obs/status` - **EXTRA** (not in legacy, but useful)
+
+**Summary:**
+- ✅ **Implemented:** 11 endpoints (but some need path/method updates)
+- ❌ **Missing:** 28 endpoints
+- ⚠️ **Needs Update:** 3 endpoints (remove `:mediaTitleId`, change methods/paths)
+
+**Priority:**
+1. **HIGH:** Update existing routes to match legacy (paths, methods, remove `:mediaTitleId`)
+2. **HIGH:** Director routes (`prepareautostart`, `inusestages`, `playhistory`, `currenthud`)
+3. **MEDIUM:** OBS Director routes (`showordered`)
+4. **MEDIUM:** Media Control routes (10 endpoints)
+5. **LOW:** Scene Collections, Scene Items, Sources, Output routes (13 endpoints)
+6. **LOW:** Media Repository additional routes (4 endpoints)
+
+---
+
+## ⚠️ **REMINDER: HALT BEFORE IMPLEMENTATION** ⚠️
+
+**🚨 DO NOT START IMPLEMENTING PHASE 5 ROUTES WITHOUT USER APPROVAL 🚨**
+
+**See the "CRITICAL: HALT BEFORE IMPLEMENTATION" section at the top of Phase 5 for discussion points.**
+
+**All decisions about route naming, namespaces, HTTP methods, and controller organization must be made BEFORE implementation begins.**
+
+**During Implementation:**
+- ✅ **Suggest new namespaces** if patterns emerge (e.g., if we see a group of routes that logically belong together)
+- ✅ **Ask user if unclear** about where a specific route should belong or what namespace to use
+- ✅ Organize by responsibility, not just legacy grouping
+
+---
 
 ### Phase 6: Base Stages & Assistant
-**Status:** Not started  
-**Time:** 8 hours  
-**Purpose:** Required by Director
+**Status:** ⏸️ **PARTIALLY IMPLEMENTED** | **Time:** 4 hours (remaining) | **Purpose:** Complete Assistant service
 
-### Phase 7: HUD (OBS Browser Source)
-**Status:** Not started  
-**Time:** 6 hours  
-**Clarification:** HTML rendered as browser source in OBS, not frontend
+**Already Implemented:**
+- ✅ Base Stages constants (`MAX_STAGES = 4`, `MAX_MEDIA_PER_STAGE = 4`)
+- ✅ Base stages scenes created in `RenderBaseScenesUseCase`:
+  - ✅ `starting-stream` scene
+  - ✅ `technical-break` scene
+  - ✅ `offline-stream` scene
+  - ✅ `stage_01`, `stage_02`, `stage_03`, `stage_04` scenes
+- ✅ Background images integrated
 
-### Phase 8: Poll System
-**Status:** Not started  
-**Time:** 8 hours
+**Missing - Assistant Service:**
+**Create:** `src/modules/Stage/infra/services/Assistant.service.ts`
 
-### Phase 9: Chat Integration (Last Priority)
-**Status:** Not started  
-**Time:** 22 hours  
+**Required Methods (Based on Legacy Project):**
+- [ ] `getMediaHud()` - Returns MediaHUD instance
+- [ ] `renderHudSource()` - Create HUD browser source in OBS (if not exists)
+- [ ] `addHudToScene(sceneName)` - Add HUD scene to a stage scene
+- [ ] `refreshHudBrowser()` - Refresh browser source
+- [ ] `getTemplateInfo()` - Get template dimensions (media size, output size, stretched dimensions)
+- [ ] `getTemplateOrientation()` - Returns: 'fullscreen_template', 'widescreen_template', or 'portrait_template'
+- [ ] `setBaseHud()` - Set base HUD with template orientation and media timespan
+- [ ] `getCurrentMediaTimespan()` - Get current media timespan (current time, total time)
+- [ ] `formatSecToTimespan(seconds)` - Format seconds to HH:MM:SS
+- [ ] `hideCurrentTemplate(stageName)` - Hide template in stage
+- [ ] `showCurrentTemplate()` - Show template in current media stage
+
+**Note:** Assistant service is needed for HUD functionality but HUD itself (Phase 7) is not priority.
+
+---
+
+### Phase 7: HUD (OBS Browser Source) ⏸️ **NOT PRIORITY**
+**Status:** ⏸️ **DEFERRED** | **Time:** 6 hours | **Clarification:** HTML rendered as browser source in OBS, not frontend
+
+**Note:** Not priority. Can be implemented later when needed.
+
+---
+
+### Phase 8: Poll System ⏸️ **NOT PRIORITY** (Mock Votes for Phase 2.5)
+**Status:** ⏸️ **DEFERRED** | **Time:** 8 hours
+
+**Note:** Not priority, but votes are needed for `MultipleWeightenStrategy` in Phase 2.5.
+
+**Action Required:**
+- [ ] **Create mock vote service/interface** for Phase 2.5 implementation
+- [ ] Mock service should return equal weights for all titles (or configurable weights)
+- [ ] Interface should match expected poll vote structure
+- [ ] Full poll system implementation deferred to later
+
+---
+
+### Phase 9: Chat Integration ⏸️ **NOT PRIORITY** (Mock Votes for Phase 2.5)
+**Status:** ⏸️ **DEFERRED** | **Time:** 22 hours  
 **Note:** Should use same app functionality as API
+
+**Action Required:**
+- [ ] **Create mock vote service/interface** for Phase 2.5 implementation (same as Phase 8)
+- [ ] Full chat integration deferred to later
 
 ---
 
 ## 📋 Detailed Phase Breakdown
 
-### Phase 1: Media Discovery & Registration (6 hours)
+### Phase 1: Media Discovery & Registration ✅
 
-#### 1.1 Complete MediaDiscovery (2 hours)
-**Current:** `src/modules/MediaCatalog/infra/repositories/MediaDiscovery/MediaDiscovery.ts`
+**Status:** ✅ **COMPLETE** | **Time:** 6 hours | **Tests:** 55/55 passing
 
-**What's done:**
-- ✅ File scanning
-- ✅ Metadata extraction
-- ✅ Validation pipeline
+#### 1.1 Complete MediaDiscovery ✅
+**Created:** `src/modules/MediaCatalog/infra/repositories/MediaDiscovery/MediaDiscovery.ts`
 
-**What's missing:**
-- ❌ Save to PostgreSQL (currently saves to JSON)
-- ❌ Integration with repositories
+- [x] File scanning, metadata extraction, validation pipeline
+- [x] Integrated with MediaTitleRepository (PostgreSQL)
+- [x] Removed JSON file saving
+- [x] Transactional aggregate creation via `createWithMedia()`
 
-**Action:**
-```typescript
-// Update MediaDiscovery to use MediaTitleRepository
-// Remove JSON file saving
-// Save directly to database
-```
+#### 1.2 Media Registration Use Case ✅
+**Flow:** Scan available-titles.json → Discover files → Extract metadata → Create entities → Save to DB
 
-#### 1.2 Media Registration Use Case (2 hours)
-**Create:** `src/modules/MediaCatalog/application/use-cases/RegisterMedia.use-case.ts`
-
-**Purpose:** Orchestrate discovery and persistence
-
-**Flow:**
-1. Scan available-titles.json
-2. Discover media files
-3. Extract metadata
-4. Create domain entities (MediaTitle, Playlist, TVShowMedia)
-5. Save to database
-
-#### 1.3 Media Registration Controller (2 hours)
-**Create:** `src/modules/MediaCatalog/infra/controllers/MediaRegistration.controller.ts`
+#### 1.3 Media Registration Controller ✅
+**Created:** `src/modules/MediaCatalog/infra/controllers/MediaRegistration.controller.ts`
 
 **Endpoints:**
-- `POST /api/media/register` - Register all titles
-- `GET /api/media/titles` - List all registered titles
-- `GET /api/media/titles/:id` - Get specific title
-
-**Test:** Verify media is saved to PostgreSQL
+- [x] `POST /api/media/register` - Register all titles
+- [x] `GET /api/media/titles` - List all registered titles
+- [x] `GET /api/media/titles/:id` - Get specific title
 
 ---
 
-### Phase 2: Media Scheduler (Simple Strategy Only) (8 hours)
+### Phase 2: Media Scheduler (Simple Strategy Only) ✅
 
-#### 2.1 MediaScheduler Domain Service (4 hours) ✅
-**Created:** `src/modules/MediaCatalog/domain/services/MediaScheduler.service.ts`
+**Status:** ✅ **COMPLETE** | **Time:** 8 hours | **Tests:** 35 tests (100% coverage)
 
-**Key Features:**
-- ✅ Title catalog management
-- ✅ Schedule generation
-- ✅ Last scheduled tracking
-- ✅ **ONLY Simple Strategy** (other strategies deferred)
-
-**Methods Implemented:**
-```typescript
-export class MediaSchedulerService {
-  static createSchedule(options: IScheduleOptions): Schedule ✅
-  static peekNextFromSchedule(schedule: Schedule, itemCount: number): MediaQueue ✅
-  static shiftSchedule(schedule: Schedule): ITVShowMediaDTO | undefined ✅
-  static isScheduleToPlayEmpty(schedule: Schedule): boolean ✅
-  static updateLastScheduled(schedule: Schedule, titleId: string, media: ITVShowMediaDTO): void ✅
-  static getLastScheduled(schedule: Schedule, titleId: string): ITVShowMediaDTO | undefined ✅
-}
-```
-
-#### 2.2 Simple Strategy (2 hours) ✅
-**Created:** `src/modules/MediaCatalog/domain/services/strategies/SimpleStrategy.ts`
-
-**Logic Implemented:**
-- ✅ If only one title available, loop through all episodes
-- ✅ Fill schedule until timespan is reached
-- ✅ Track last scheduled episode
-- ✅ Error handling for multiple titles (throws error)
-- ✅ Handles empty playlists gracefully
-
-**⚠️ REMEMBER:** Other strategies (MultipleCommon, MultipleWeighted) are deferred.
-
-#### 2.3 Schedule Domain Entity (2 hours) ✅
+#### 2.1 Schedule Domain Entity ✅
 **Created:** `src/modules/MediaCatalog/domain/entities/Schedule/index.ts`
 
-**Properties:**
-- ✅ id: DomainID
-- ✅ preStart: MediaQueue (before schedule starts)
-- ✅ toPlay: MediaQueue (currently playing)
-- ✅ lastScheduledFromTitle: Map<string, ITVShowMediaDTO>
-- ✅ unstarted: boolean
-- ✅ nextPeekIndex: number (tracks next position for peeking, prevents duplicate rendering)
+**Properties:** id, preStart, toPlay, lastScheduledFromTitle, unstarted, nextPeekIndex  
+**Methods:** addToPreStart(), addToToPlay(), shiftToPlay(), peekToPlay(), advancePeekIndex(), etc.
 
-**Methods:**
-- ✅ addToPreStart(), addToToPlay()
-- ✅ shiftToPlay(), peekToPlay() (uses nextPeekIndex for sequential peeking)
-- ✅ advancePeekIndex() (increments after items are peeked/rendered)
-- ✅ getPeekIndex() (get current peek position)
-- ✅ isToPlayEmpty()
-- ✅ updateLastScheduled(), getLastScheduled()
-- ✅ markAsStarted()
-- ✅ DTO getter
+- [x] Schedule domain entity (15 tests, 100% coverage)
 
-**Tests:** ✅ 35 tests total
-- Schedule entity: 15 tests (100% coverage)
-- SimpleStrategy: 6 tests (100% coverage)
-- MediaScheduler service: 10 tests (100% coverage)
-- Integration tests: 4 tests
+#### 2.2 Simple Strategy ✅
+**Created:** `src/modules/MediaCatalog/domain/services/strategies/SimpleStrategy.ts`
+
+**Logic:** Single title looping, episode tracking, error handling
+
+- [x] SimpleStrategy (6 tests, 100% coverage)
+
+#### 2.3 MediaScheduler Domain Service ✅
+**Created:** `src/modules/MediaCatalog/domain/services/MediaScheduler.service.ts`
+
+**Methods:** createSchedule(), peekNextFromSchedule(), shiftSchedule(), isScheduleToPlayEmpty(), updateLastScheduled()
+
+- [x] MediaScheduler domain service (10 tests + 4 integration tests)
 
 ---
 
-### Phase 3: Director + DDD Architecture (22 hours)
+### Phase 2.5: Media Scheduler Enhancements ⏸️ **NEW PRIORITY**
 
-#### 3.1 Stage Domain Entity (3 hours)
-**Create:** `src/modules/Stage/domain/entities/Stage/index.ts`
+**Status:** ⏸️ **PENDING** | **Time:** 12 hours | **Priority:** HIGH (Before Phase 5)
 
-**Properties:**
-- stageNumber: number (1-4)
-- status: 'available' | 'in_use' | 'on_screen'
-- mediaQueue: TVShowMedia[]
-- estimatedTimeToFinish: number
-- lastUsed: Date
-- combinedKey: string (title identifier)
-
-#### 3.2 Stage Manager Domain Service (4 hours)
-**Create:** `src/modules/Stage/domain/services/StageManager.service.ts`
-
-**Port from:** Director's stage management methods
-
-**Methods:**
-- `getAvailableStage(): Stage`
-- `setStageInUse(stage: Stage, mediaQueue: TVShowMedia[]): void`
-- `vacateStage(stage: Stage): void`
-- `addStageToQueue(stage: Stage): void`
-- `popNextStageInQueue(): Stage`
-
-#### 3.3 Media Formatter Domain Service (2 hours) ✅
-**Create:** `src/modules/Stage/domain/services/MediaFormatter.service.ts`
-
-**Port from:** Director's `formatMediaForObs()`
-
-**Purpose:** Convert domain entities to OBS format
-
-**Method:**
-```typescript
-formatMediaForObs(media: TVShowMedia[], stageName: string): OBSMediaSource[]
-```
-
-**Source Name Format:** ✅
-- Format: `{sanitizedTitleName}_{sanitizedFileName}`
-- Removed stage name prefix (for global uniqueness)
-- Removed index/number prefix
-- Removed short ID suffix
-- Uses title name + file name for uniqueness
-
-#### 3.4 Director Use Cases (10 hours)
-**Break Director into use cases:**
-
-**3.4.1 PrepareStream Use Case (2 hours)**
-```typescript
-// src/modules/Stage/application/use-cases/PrepareStream.use-case.ts
-export class PrepareStreamUseCase {
-  async execute(): Promise<void> {
-    // Stop existing cron jobs
-    // Render base scenes
-    // Initialize stages
-  }
-}
-```
-
-**3.4.2 RenderBaseScenes Use Case (2 hours)** ✅
-```typescript
-// src/modules/Stage/application/use-cases/RenderBaseScenes.use-case.ts
-export class RenderBaseScenesUseCase {
-  async execute(): Promise<void> {
-    // Set scene collection ✅
-    // Create base scenes (starting-stream, technical-break, offline) ✅
-    // Create stage scenes (stage_01, stage_02, etc.) ✅
-    // Create background images ✅ (with actual image files from legacy project)
-    // Create chat overlays (deferred to Phase 9)
-  }
-}
-```
-
-**3.4.3 RenderNextScheduledMedia Use Case (2 hours)** ✅
-```typescript
-// src/modules/Stage/application/use-cases/RenderNextScheduledMedia.use-case.ts
-export class RenderNextScheduledMediaUseCase {
-  async execute(): Promise<void> {
-    // Get available stage ✅
-    // Get next media from schedule (using nextPeekIndex) ✅
-    // Create OBS sources ✅
-    // Set stage in use ✅
-    // Format and position media ✅
-    // Add stage to queue (for startSchedule) ✅
-    // Advance peek index to prevent duplicate rendering ✅
-  }
-}
-```
-
-**3.4.4 StartSchedule Use Case (2 hours)** ✅
-```typescript
-// src/modules/Stage/application/use-cases/StartSchedule.use-case.ts
-export class StartScheduleUseCase {
-  async execute(): Promise<void> {
-    // Get next stage from queue (ALWAYS from queue, not available stages) ✅
-    // Get first media from schedule (peek from nextPeekIndex if stage queue empty) ✅
-    // Start media playback ✅
-    // Change to stage scene ✅
-    // Hide other sources in scene (only one visible at a time) ✅
-    // Schedule next media cron job (optional - can be added later)
-  }
-}
-```
-
-**3.4.5 NextMedia Use Case (2 hours)**
-```typescript
-// src/modules/Stage/application/use-cases/NextMedia.use-case.ts
-export class NextMediaUseCase {
-  async execute(): Promise<void> {
-    // Stop current cron job
-    // Add current to play history
-    // Check if more media in stage
-    // If yes: nextMediaInStage()
-    // If no: check next stage or generate more schedule
-  }
-}
-```
-
-#### 3.5 Director Orchestration Service (3 hours)
-**Create:** `src/modules/Stage/application/services/Director.service.ts`
-
-**Purpose:** Coordinate use cases and manage state
-
-**State Management:**
-- Current schedule ID
-- Stage metadata (available, in_use, queue, on_screen)
-- Current media
-- Play history
-
-**Test:** Full director workflow
+See "NEW PRIORITY: Phase 2.5" section above for detailed breakdown.
 
 ---
 
-### Phase 4: OBS Repositories/Models (14 hours)
+### Phase 3: Director + DDD Architecture ✅
 
-#### 4.1 OBS Service Layer (10 hours)
+**Status:** ✅ **COMPLETE** | **Time:** 22 hours | **Note:** Core functionality complete. Chat overlays deferred to Phase 9.
 
-**4.1.1 Scene Service (2 hours)**
-**Create:** `src/modules/Stage/infra/services/OBS/Scene.service.ts`
+#### 3.1 Stage Domain Entity ✅
+**Created:** `src/modules/Stage/domain/entities/Stage/index.ts`
 
-**Port from:** `../vcmanda/src/app/models/obs/scene.js`
+**Properties:** stageNumber, status, mediaQueue, estimatedTimeToFinish, lastUsed, combinedKey
 
-**Methods:**
-- `getScenes(): Promise<Scene[]>`
-- `getScene(sceneName: string): Promise<Scene>`
-- `createScene(sceneName: string): Promise<void>`
-- `batchCreate(scenes: SceneConfig[]): Promise<void>`
-- `setScene(sceneName: string): Promise<void>`
+- [x] Stage domain entity
 
-**4.1.2 SceneItems Service (2 hours)**
-**Create:** `src/modules/Stage/infra/services/OBS/SceneItems.service.ts`
+#### 3.2 Stage Manager Domain Service ✅
+**Created:** `src/modules/Stage/domain/services/StageManager.service.ts`
 
-**Port from:** `../vcmanda/src/app/models/obs/sceneItems.js`
+**Methods:** getAvailableStage(), setStageInUse(), vacateStage(), addStageToQueue(), popNextStageInQueue()
 
-**Methods:**
-- `getAll(sceneName: string): Promise<SceneItem[]>`
-- `getProperties(sourceName: string, sceneName: string): Promise<SceneItemProperties>`
-- `setProperties(sourceName: string, properties: SceneItemProperties, sceneName: string): Promise<void>`
-- `removeItem(itemId: number, sourceName: string, sceneName: string): Promise<void>`
+- [x] StageManager domain service
 
-**4.1.3 Sources Service (2 hours)**
-**Create:** `src/modules/Stage/infra/services/OBS/Sources.service.ts`
+#### 3.3 Media Formatter Domain Service ✅
+**Created:** `src/modules/Stage/domain/services/MediaFormatter.service.ts`
 
-**Port from:** `../vcmanda/src/app/models/obs/sources.js`
+**Source Name Format:** `{sanitizedTitleName}_{sanitizedFileName}` (removed stage prefix, index, short ID)
 
-**Methods:**
-- `create(sourceName: string, sourceKind: string, sceneName: string, settings: SourceSettings): Promise<void>`
-- `batchCreate(sources: SourceConfig[]): Promise<void>`
-- `getSettings(sourceName: string): Promise<SourceSettings>`
-- `getList(): Promise<Source[]>`
+- [x] MediaFormatter domain service
 
-**4.1.4 MediaControl Service (2 hours)**
-**Create:** `src/modules/Stage/infra/services/OBS/MediaControl.service.ts`
+#### 3.4 Director Use Cases ✅
 
-**Port from:** `../vcmanda/src/app/models/obs/mediaControl.js`
+- [x] All 5 director use cases implemented
 
-**Methods:**
-- `play(sourceName: string): Promise<void>`
-- `pause(sourceName: string): Promise<void>`
-- `restart(sourceName: string): Promise<void>`
-- `stop(sourceName: string): Promise<void>`
-- `scrub(sourceName: string, time: number): Promise<void>`
-- `getState(sourceName: string): Promise<MediaState>`
+**3.4.1 PrepareStream Use Case ✅**
+- [x] Stop existing cron jobs
+- [x] Render base scenes
+- [x] Initialize stages
+- [x] Change to `starting-stream` scene via OBSPQ
 
-**4.1.5 SceneCollections Service (1 hour)**
-**Create:** `src/modules/Stage/infra/services/OBS/SceneCollections.service.ts`
+**3.4.2 RenderBaseScenes Use Case ✅**
+- [x] Set scene collection
+- [x] Create base scenes (starting-stream, technical-break, offline)
+- [x] Create stage scenes (stage_01, stage_02, etc.)
+- [x] Create background images (from legacy project)
+- [ ] Chat overlays (deferred to Phase 9)
 
-**Port from:** `../vcmanda/src/app/models/obs/sceneCollections.js`
+**3.4.3 RenderNextScheduledMedia Use Case ✅**
+- [x] Get available stage
+- [x] Get next media from schedule (using nextPeekIndex)
+- [x] Create OBS sources via OBSPQ (BATCH_MEDIUM_CREATE_SOURCE)
+- [x] Set properties via OBSPQ (CHANGE_MEDIA_PROPERTIES)
+- [x] Set stage in use
+- [x] Add stage to queue
 
-**Methods:**
-- `getList(): Promise<SceneCollection[]>`
-- `setCurrent(collectionName: string): Promise<boolean>`
+**3.4.4 StartSchedule Use Case ✅**
+- [x] Get next stage from queue (ALWAYS from queue)
+- [x] Get first media from schedule
+- [x] Create OBS sources via OBSPQ
+- [x] Hide other sources via OBSPQ (HIDE_MEDIA)
+- [x] Set properties via OBSPQ (media initially hidden)
+- [x] Media playback starts directly (per legacy pattern)
+- [x] Schedule transition cronjob (CHANGE_MEDIA_FOCUS_AND_STAGE)
+- [x] Schedule next media cronjob (NEXT_SCHEDULED_MEDIA)
+- [x] Scene change removed from immediate execution (handled by cronjob)
 
-**4.1.6 Output Service (1 hour)**
-**Create:** `src/modules/Stage/infra/services/OBS/Output.service.ts`
+**3.4.5 NextMedia Use Case ✅**
+- [x] Stop current cronjob before executing
+- [x] Add current to play history
+- [x] Check if more media in stage
+- [x] All OBS operations via OBSPQ (HIDE_MEDIA, SHOW_MEDIA, CHANGE_STAGE_FOCUS)
+- [x] Scene changes via OBSPQ (not immediate)
+- [x] Reschedule next media cronjob
+- [ ] **Future**: Auto-append functionality when schedule runs out (legacy: `appendToFutureSchedule()`) - **NOW IN PHASE 2.5**
 
-**Port from:** `../vcmanda/src/app/models/obs/output.js`
+**3.4.6 CronJob Scheduling System ✅ COMPLETE**
+**Created:** `src/modules/Stage/infra/services/CronJobScheduler.service.ts`
 
-**Methods:**
-- `getList(): Promise<Output[]>`
+**Key Features:**
+- [x] Schedule media changes X seconds in the future
+- [x] Unique job enforcement (only one instance per job type)
+- [x] Job management (create, stop, destroy, list, start)
+- [x] Development mode time acceleration (18x faster)
+- [x] Timezone support (America/Sao_Paulo)
+- [x] Cron v4 compatibility (Date objects for one-time execution)
+- [x] Winston logging integration (cronjob logger)
 
-#### 4.2 OBS Priority Queue (4 hours)
-**Create:** `src/modules/Stage/infra/services/OBS/OBSPriorityQueue.service.ts`
+**Related Use Cases:**
+- [x] `ScheduleNextMediaUseCase` - Creates/updates `next_scheduled_media` cronjob
+- [x] `ScheduleMediaTransitionUseCase` - Creates `change_media_focus_and_stage` cronjob
+- [x] `StopScheduleCronjobsUseCase` - Stops all schedule-related cronjobs
+- [x] `ListCronJobsUseCase` - Lists all cronjobs with filtering
+- [x] `MediaTransitionUseCase` - Triggered by cronjob, handles scene/media visibility via OBSPQ
 
-**Port from:** `../vcmanda/src/app/core/workers/obsPQ.js`
+**Integration:**
+- [x] Integrated into `StartScheduleUseCase` - Schedules transition and next media cronjobs
+- [x] Integrated into `PrepareStreamUseCase` - Stops existing cronjobs before preparing
+- [x] All OBS operations go through OBSPQ (as per legacy project pattern)
+- [x] Scene changes happen via cronjob → OBSPQ (not immediately)
 
-**Purpose:** Batch OBS commands to avoid overwhelming WebSocket
+**Status:** ✅ **PRODUCTION READY** - All requirements from CRONJOB-MIGRATION-PLAN.md Phase 0, 1, and 2 complete
 
-**Implementation:**
-```typescript
-export enum OBSMethodType {
-  SHOW_MEDIA = 'SHOW_MEDIA',
-  HIDE_MEDIA = 'HIDE_MEDIA',
-  CHANGE_STAGE_FOCUS = 'CHANGE_STAGE_FOCUS',
-  CHANGE_MEDIA_PROPERTIES = 'CHANGE_MEDIA_PROPERTIES',
-  CREATE_SOURCE = 'CREATE_SOURCE',
-  VACATE_STAGE = 'VACATE_STAGE',
-  // ... etc
-}
+#### 3.5 Director Orchestration Service ✅
+**Created:** `src/modules/Stage/application/services/Director.service.ts`
 
-export class OBSPriorityQueue {
-  private queues: Map<OBSMethodType, Queue<OBSCommand>>
-  
-  pushToQueue(methodType: OBSMethodType, command: () => Promise<void>): void
-  async processQueue(): Promise<void>
-}
-```
+**Features:** Coordinate use cases, manage state (current schedule, stages, current media)
 
-**Test:** Verify OBS commands are batched correctly
-
----
-
-### Phase 5: API System (10 hours)
-
-#### 5.1 Media Registration Controller (2 hours)
-**Create:** `src/modules/MediaCatalog/infra/controllers/MediaRegistration.controller.ts`
-
-**Endpoints:**
-- `POST /api/media/register` - Register all titles
-- `GET /api/media/titles` - List all titles
-- `GET /api/media/titles/:id` - Get title details
-- `GET /api/media/titles/:id/playlists` - Get playlists
-
-#### 5.2 Schedule Controller (2 hours)
-**Create:** `src/modules/MediaCatalog/infra/controllers/Schedule.controller.ts`
-
-**Endpoints:**
-- `POST /api/schedule/create` - Create new schedule
-- `GET /api/schedule/:id` - Get schedule
-- `GET /api/schedule/:id/next` - Peek next media
-
-#### 5.3 Director Controller (3 hours)
-**Create:** `src/modules/Stage/infra/controllers/Director.controller.ts`
-
-**Endpoints:**
-- `POST /api/director/prepare` - Prepare stream
-- `POST /api/director/start` - Start schedule
-- `POST /api/director/stop` - Stop schedule
-- `GET /api/director/status` - Get current status
-- `GET /api/director/stages` - Get stage info
-- `GET /api/director/history` - Get play history
-
-#### 5.4 OBS Controller (3 hours)
-**Create:** `src/modules/Stage/infra/controllers/OBS.controller.ts`
-
-**Endpoints:**
-- `GET /api/obs/scenes` - List scenes
-- `GET /api/obs/scenes/:name` - Get scene
-- `POST /api/obs/scenes/:name/set` - Set current scene
-- `GET /api/obs/sources` - List sources
-- `POST /api/obs/media/:sourceName/play` - Play media
-- `POST /api/obs/media/:sourceName/pause` - Pause media
-- `GET /api/obs/media/:sourceName/state` - Get media state
-
-**Test:** All endpoints via Postman/curl
+- [x] Director orchestration service
+- [x] Background images integrated
+- [ ] Test: Full director workflow (optional - can be done during Phase 4 testing)
 
 ---
 
-### Phase 6: Base Stages & Assistant (8 hours)
+### Phase 4: OBS Repositories/Models ✅ **COMPLETE**
 
-#### 6.1 Base Stages Value Object (2 hours)
-**Create:** `src/modules/Stage/domain/value-objects/BaseStages.value-object.ts`
+**Status:** ✅ **COMPLETE** | **Time:** 14 hours | **Purpose:** Test OBS integration
 
-**Port from:** `../vcmanda/src/app/core/props/baseStages.js`
+#### 4.1 OBS Service Layer ✅
+**Created:** `src/modules/Stage/infra/services/OBS/`
 
-**Properties:**
-```typescript
-export class BaseStagesValueObject {
-  static readonly STARTING_STREAM = 'starting-stream'
-  static readonly TECHNICAL_BREAK = 'technical-break'
-  static readonly OFFLINE = 'offline-stream'
-  static readonly HUD_SCENE = 'hud'
-  static readonly MAX_STAGES = 4
-  static readonly MAX_MEDIA_PER_STAGE = 4
-  
-  static getBaseStages(): BaseStageConfig[]
-  static getStageName(stageNumber: number): string
-}
-```
+- [x] Scene Service (getScenes, createScene, setScene, batchCreate)
+- [x] SceneItems Service (getAll, getProperties, setProperties, removeItem)
+- [x] Sources Service (create, batchCreate, getSettings, getList)
+- [x] MediaControl Service (play, pause, restart, stop, scrub, getState)
+- [x] SceneCollections Service (getList, setCurrent)
+- [x] Output Service (getList)
 
-#### 6.2 Assistant Service (6 hours)
-**Create:** `src/modules/Stage/infra/services/Assistant.service.ts`
+#### 4.2 OBS Priority Queue ✅
+**Created:** `src/modules/Stage/infra/services/OBS/OBSPriorityQueue.service.ts`
 
-**Port from:** `../vcmanda/src/app/core/workers/assistant.js`
+**Purpose:** Batch OBS commands to avoid overwhelming WebSocket  
+**Features:** Priority-based execution, cooldown management
 
-**Features:**
-- HUD source rendering
-- Media timespan rendering
-- Scene item management
-
-**Methods:**
-- `renderHudSource(): Promise<void>`
-- `addHudToScene(sceneName: string): Promise<void>`
-- `setBaseHud(): Promise<void>`
-- `getMediaHud(): MediaHUD`
-
-**Test:** Verify HUD appears in OBS
+- [x] Create OBS Priority Queue
+- [ ] Test: Verify OBS commands work (optional - can be done during Phase 5 testing)
 
 ---
 
-### Phase 7: HUD (OBS Browser Source) (6 hours)
+### Phase 5: API System
 
-#### 7.1 HUD Service (4 hours)
-**Create:** `src/modules/Stage/infra/services/HUD.service.ts`
+**Status:** ⏸️ **PARTIALLY IMPLEMENTED** | **Time:** 6 hours (remaining)
 
-**Port from:** `../vcmanda/src/app/core/media/mediaHUD.js`
-
-**Clarification:** HUD is HTML rendered as browser source in OBS, not a separate frontend.
-
-**Features:**
-- Grid-based layout system
-- Media timer display
-- Top voted media display
-- Socket.io communication
-
-**Methods:**
-- `renderBaseHUD(templateOrientation: string, payload: HUDData): Promise<void>`
-- `addToGrid(items: HUDItem[]): void`
-- `renderMediaTimespan(visible: boolean): Promise<void>`
-
-#### 7.2 Socket.io Integration (2 hours)
-**Create:** `src/modules/Stage/infra/services/SocketIO.service.ts`
-
-**Port from:** `../vcmanda/src/app/core/twitch/twitchOverlaySocket.js`
-
-**Purpose:** Real-time communication with OBS browser source
-
-**Methods:**
-- `emit(event: string, data: any): void`
-- `on(event: string, callback: Function): void`
-
-**Test:** Verify HUD updates in real-time in OBS
+See "Phase 5: API System" section above for detailed breakdown.
 
 ---
 
-### Phase 8: Poll System (8 hours)
+### Phase 6: Base Stages & Assistant
 
-#### 8.1 Poll Domain Entity (2 hours)
-**Create:** `src/modules/Chat/domain/entities/Poll.entity.ts`
+**Status:** ⏸️ **PARTIALLY IMPLEMENTED** | **Time:** 4 hours (remaining)
 
-**Properties:**
-- id: DomainID
-- name: string
-- votes: Map<string, string[]> (username -> preferences)
-- startedAt: Date
-
-#### 8.2 Poll Domain Service (3 hours)
-**Create:** `src/modules/Chat/domain/services/Poll.service.ts`
-
-**Port from:** `../vcmanda/src/app/core/workers/poll.js`
-
-**Methods:**
-- `appendVote(pollName: string, user: string, preferences: string[]): Promise<void>`
-- `calculateResults(pollName: string): Promise<Ranking[]>`
-- `validateTitles(preferences: string[]): string[]` (string similarity)
-
-#### 8.3 Poll Repository (2 hours)
-**Create:** `src/modules/Chat/infra/repositories/Poll.repository.ts`
-
-**Purpose:** Persist polls to PostgreSQL
-
-#### 8.4 Poll Application Service (1 hour)
-**Create:** `src/modules/Chat/application/services/Poll.service.ts`
-
-**Purpose:** Orchestrate poll operations with cron jobs
-
-**Test:** Create poll, vote, calculate results
+See "Phase 6: Base Stages & Assistant" section above for detailed breakdown.
 
 ---
 
-### Phase 9: Chat Integration (Last Priority) (22 hours)
+### Phase 7: HUD (OBS Browser Source) ⏸️ **NOT PRIORITY**
 
-#### 9.1 Modern Twitch Integration (8 hours)
-**Replace deprecated libraries:**
+**Status:** ⏸️ **DEFERRED** | **Time:** 6 hours | **Clarification:** HTML rendered as browser source in OBS, not frontend
 
-**Install:**
-```bash
-npm install @twurple/api @twurple/auth @twurple/chat
-```
+**Note:** Not priority. Can be implemented later when needed.
 
-**Create:** `src/modules/Chat/infra/providers/Twitch.provider.ts`
+---
 
-**Port from:** `../vcmanda/src/app/core/twitch/chat.js`
+### Phase 8: Poll System ⏸️ **NOT PRIORITY** (Mock Votes for Phase 2.5)
 
-**Methods:**
-- `connect(): Promise<void>`
-- `onMessage(callback: (message: ChatMessage) => void): void`
-- `sendMessage(channel: string, message: string): Promise<void>`
+**Status:** ⏸️ **DEFERRED** | **Time:** 8 hours
 
-#### 9.2 Command Handler (6 hours)
-**Create:** `src/modules/Chat/application/services/CommandHandler.service.ts`
+**Note:** Not priority, but votes are needed for `MultipleWeightenStrategy` in Phase 2.5.
 
-**Commands:**
-- `!ping` → Response
-- `!pref title1, title2` → Media preference voting
-- `!play` → Play media (mod only)
-- `!pause` → Pause media (mod only)
-- `!skip` → Skip to next (mod only)
-- `!list` → List available titles
+**Action Required:**
+- [ ] **Create mock vote service/interface** for Phase 2.5 implementation
+- [ ] Mock service should return equal weights for all titles (or configurable weights)
+- [ ] Interface should match expected poll vote structure
+- [ ] Full poll system implementation deferred to later
 
-**Important:** Commands should call same use cases as API endpoints
+---
 
-#### 9.3 Chat Module (4 hours)
-**Create:** `src/modules/Chat/Chat.module.ts`
+### Phase 9: Chat Integration ⏸️ **NOT PRIORITY** (Mock Votes for Phase 2.5)
 
-**Wire everything together**
+**Status:** ⏸️ **DEFERRED** | **Time:** 22 hours  
+**Note:** Should use same app functionality as API
 
-#### 9.4 Chat Service (4 hours)
-**Create:** `src/modules/Chat/infra/services/Chat.service.ts`
-
-**Purpose:** Start chat connection and route commands
-
-**Test:** Commands work same as API endpoints
+**Action Required:**
+- [ ] **Create mock vote service/interface** for Phase 2.5 implementation (same as Phase 8)
+- [ ] Full chat integration deferred to later
 
 ---
 
 ## 🗄️ Database Migration: Firestore → PostgreSQL
 
-### Migration Strategy
+### Tables Needed:
+1. **media_titles** - id, title, type, created_at, updated_at
+2. **playlists** - id, title, is_anchor, media_title_id, created_at, updated_at
+3. **tv_show_media** - id, title, file_name, file_path, folder_name, file_ext, duration, width, height, ratio
+4. **playlist_tv_show_media_junction** - playlist_id, tv_show_media_id, order (many-to-many)
+5. **schedules** - id, unstarted, pre_start_queue (JSONB), to_play_queue (JSONB), last_scheduled (JSONB)
+6. **polls** - id, name, votes (JSONB), started_at
 
-**Current Legacy:** Uses Firestore for:
-- Last scheduled media per title
-- Schedule persistence
-
-**New System:** Use PostgreSQL with TypeORM
-
-#### Tables Needed:
-
-1. **media_titles**
-   - id (UUID)
-   - title (VARCHAR)
-   - type (VARCHAR: 'tvshow' | 'movie')
-   - created_at, updated_at
-
-2. **playlists**
-   - id (UUID)
-   - title (VARCHAR)
-   - is_anchor (BOOLEAN)
-   - media_title_id (UUID FK)
-   - submedia (JSONB) - Array of TVShowMedia DTOs
-   - collections (JSONB) - Optional
-   - created_at, updated_at
-
-3. **tv_show_media**
-   - id (UUID)
-   - title (VARCHAR)
-   - file_name (VARCHAR)
-   - file_path (VARCHAR)
-   - folder_name (VARCHAR)
-   - file_ext (VARCHAR)
-   - duration (INT)
-   - width (INT)
-   - height (INT)
-   - ratio (VARCHAR)
-   - created_at, updated_at
-
-4. **schedules**
-   - id (UUID)
-   - unstarted (BOOLEAN)
-   - pre_start_queue (JSONB)
-   - to_play_queue (JSONB)
-   - last_scheduled (JSONB) - Map of title -> last media
-   - created_at, updated_at
-
-5. **polls**
-   - id (UUID)
-   - name (VARCHAR)
-   - votes (JSONB) - Map of user -> preferences
-   - started_at (TIMESTAMP)
-   - created_at, updated_at
-
----
-
-## 🧪 Testing Strategy
-
-**Approach:** Ask about tests as we implement features
-
-**General Guidelines:**
-- Test critical business logic
-- Test integration points (OBS, Database)
-- Skip testing simple getters/setters
-- Focus on use cases and domain services
-
-**When to ask:**
-- After each phase completion
-- Before implementing complex logic
-- When integration points are added
-
----
-
-## 📝 Implementation Checklist
-
-### Phase 1: Media Discovery & Registration
-- [ ] Complete MediaDiscovery with PostgreSQL
-- [ ] Create RegisterMedia use case
-- [ ] Create MediaRegistration controller
-- [ ] Test: Register titles and verify in DB
-
-### Phase 2: Media Scheduler (Simple Strategy Only) ✅
-- [x] Create MediaScheduler domain service
-- [x] Create SimpleStrategy (ONLY - defer others)
-- [x] Create Schedule entity
-- [x] Test: Generate schedule with single title
-- [x] Integration tests with MediaTitle entities
-
-### Phase 3: Director + DDD Architecture ✅
-- [x] Create Stage entity
-- [x] Create StageManager service
-- [x] Create MediaFormatter service
-- [x] Create Director use cases (all 5 use cases implemented)
-- [x] Create Director orchestration service
-- [x] Background images integrated from legacy project
-- [ ] Test: Full director workflow (optional - can be done during Phase 4 testing)
-- [ ] Chat overlays (deferred to Phase 9)
-
-### Phase 4: OBS Repositories/Models
-- [ ] Create all OBS services
-- [ ] Create OBS Priority Queue
-- [ ] Test: Verify OBS commands work
-
-### Phase 5: API System
-- [ ] Create all controllers
-- [ ] Create DTOs
-- [ ] Test: All endpoints via Postman
-
-### Phase 6: Base Stages & Assistant
-- [ ] Create BaseStages value object
-- [ ] Create Assistant service
-- [ ] Test: Verify base scenes created in OBS
-
-### Phase 7: HUD
-- [ ] Create HUD service
-- [ ] Create Socket.io service
-- [ ] Test: Verify HUD displays in OBS browser source
-
-### Phase 8: Poll System
-- [ ] Create Poll entity
-- [ ] Create Poll services
-- [ ] Create Poll repository
-- [ ] Test: Create poll, vote, get results
-
-### Phase 9: Chat Integration
-- [ ] Replace Twitch libraries
-- [ ] Create command handler
-- [ ] Create chat service
-- [ ] Test: Commands work same as API
+**Status:** ✅ Phase 1 tables implemented with proper relationships (no JSONB for submedia)
 
 ---
 
 ## 🎯 Key Reminders
 
-1. **Database:** PostgreSQL (migrate from Firestore)
-2. **Scheduler:** Only Simple Strategy for now (defer others)
-3. **HUD:** OBS browser source (HTML), not frontend
-4. **Chat:** Last priority, but should use same functionality as API
-5. **Testing:** Ask as we go, don't over-test
-6. **Timeline:** Flexible, no rush
+1. **Database:** PostgreSQL (migrate from Firestore) ✅
+2. **Scheduler:** Simple Strategy complete, enhancements needed (Phase 2.5) ⏸️
+3. **HUD:** OBS browser source (HTML), not frontend - **NOT PRIORITY**
+4. **Chat:** Last priority, but should use same functionality as API - **NOT PRIORITY**
+5. **Poll System:** Not priority, but mock votes needed for Phase 2.5
+6. **Testing:** Ask as we go, don't over-test
+7. **Timeline:** Flexible, no rush
 
 ---
 
-## 🚀 Ready to Start
+## 🚀 Progress Summary
 
-**Next Step:** Begin with Phase 4 - OBS Repositories/Models
+**Completed Phases:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅  
+**Next Priority:** Phase 2.5 (Enhancements) → Phase 5 (Complete API) → Phase 6 (Complete Assistant)  
+**Deferred:** Phase 7 (HUD) | Phase 8 (Poll - mock votes only) | Phase 9 (Chat - mock votes only)
 
-**Completed Phases:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅
+**Estimated Total Time Remaining:** ~22 hours (Phase 2.5: 12h, Phase 5: 6h, Phase 6: 4h)
 
-**Estimated Total Time Remaining:** ~70 hours (excluding chat)
+**Next Step:** Begin with Phase 2.5 - Media Scheduler Enhancements
 
-**When ready, say "ACT" and we'll start with Phase 4!** 🎬
-
+**When ready, say "ACT" and we'll start with Phase 2.5!** 🎬

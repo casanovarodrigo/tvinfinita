@@ -86,7 +86,7 @@ export class SourcesService {
    */
   async batchCreate(sources: ISourceConfig[]): Promise<any> {
     try {
-      const obs = await this.obsService.getSocket()
+      await this.obsService.getSocket()
 
       // Create sources sequentially (OBS v5 doesn't have CallBatch, use sequential calls)
       const results = []

@@ -4,6 +4,7 @@ import * as path from 'path'
 import { ILoggerConfig } from '../config/logger.config'
 
 // winston-daily-rotate-file is a CommonJS module, use require for proper interop
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const DailyRotateFile = require('winston-daily-rotate-file')
 
 export enum LoggerType {
@@ -41,6 +42,7 @@ export function createLogger(options: ILoggerFactoryOptions): winston.Logger {
         : config.director
 
   // Define colors for each logger type (normal logs - not red/yellow/green)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const loggerColors: Record<LoggerType, string> = {
     [LoggerType.GENERAL]: 'cyan',
     [LoggerType.CRONJOB]: 'magenta',

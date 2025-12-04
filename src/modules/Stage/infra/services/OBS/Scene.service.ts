@@ -84,7 +84,7 @@ export class SceneService {
    */
   async batchCreate(scenes: ISceneConfig[]): Promise<any> {
     try {
-      const obs = await this.obsService.getSocket()
+      await this.obsService.getSocket()
 
       // Create scenes sequentially (OBS v5 doesn't have CallBatch, use sequential calls)
       const results = []

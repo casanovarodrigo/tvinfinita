@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { OBSService } from '../OBS.service'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../../infra/logging/services/logger.service'
 
 /**
  * Source Settings interface
@@ -37,9 +39,14 @@ export interface ISource {
  */
 @Injectable()
 export class SourcesService {
-  private readonly logger = new Logger(SourcesService.name)
+  private readonly logger: winston.Logger
 
-  constructor(private readonly obsService: OBSService) {}
+  constructor(
+    private readonly obsService: OBSService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(SourcesService.name)
+  }
 
   /**
    * Create a single source/input
@@ -70,11 +77,11 @@ export class SourcesService {
 
       const success = result !== null
       if (success) {
-        this.logger.log(`Created source: ${sourceName} in scene: ${sceneName}`)
+        this.logger.info(`Created source: ${sourceName} in scene: ${sceneName}`)
       }
       return success
     } catch (error) {
-      this.logger.error(`Error creating source: ${sourceName}`, error)
+      this.logger.error(`Error creating source: ${sourceName}`, { error })
       throw error
     }
   }
@@ -86,8 +93,6 @@ export class SourcesService {
    */
   async batchCreate(sources: ISourceConfig[]): Promise<any> {
     try {
-      await this.obsService.getSocket()
-
       // Create sources sequentially (OBS v5 doesn't have CallBatch, use sequential calls)
       const results = []
       for (const source of sources) {
@@ -106,10 +111,10 @@ export class SourcesService {
       }
       const result = { results }
 
-      this.logger.log(`Batch created ${sources.length} sources`)
+      this.logger.info(`Batch created ${sources.length} sources`)
       return result
     } catch (error) {
-      this.logger.error('Error batch creating sources', error)
+      this.logger.error('Error batch creating sources', { error })
       throw error
     }
   }
@@ -127,7 +132,7 @@ export class SourcesService {
       })
       return result.inputSettings || {}
     } catch (error) {
-      this.logger.error(`Error getting settings for source: ${sourceName}`, error)
+      this.logger.error(`Error getting settings for source: ${sourceName}`, { error })
       throw error
     }
   }
@@ -142,7 +147,7 @@ export class SourcesService {
       const result = await obs.call('GetInputList')
       return (result.inputs as unknown as ISource[]) || []
     } catch (error) {
-      this.logger.error('Error getting sources list', error)
+      this.logger.error('Error getting sources list', { error })
       throw error
     }
   }

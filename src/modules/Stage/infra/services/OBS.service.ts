@@ -1,6 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { Injectable, OnModuleInit } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import OBSWebSocket from 'obs-websocket-js'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../infra/logging/services/logger.service'
 
 /**
  * OBS WebSocket Service
@@ -8,12 +10,17 @@ import OBSWebSocket from 'obs-websocket-js'
  */
 @Injectable()
 export class OBSService implements OnModuleInit {
-  private readonly logger = new Logger(OBSService.name)
+  private readonly logger: winston.Logger
   private obs: OBSWebSocket | null = null
   private isConnected = false
   private connectionPromise: Promise<OBSWebSocket> | null = null
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(OBSService.name)
+  }
 
   async onModuleInit() {
     await this.connect()
@@ -55,7 +62,7 @@ export class OBSService implements OnModuleInit {
       })
 
       this.obs.on('ConnectionError', (error) => {
-        this.logger.error('OBS WebSocket connection error', error)
+        this.logger.error('OBS WebSocket connection error', { error })
         this.isConnected = false
         this.obs = null
       })
@@ -66,11 +73,11 @@ export class OBSService implements OnModuleInit {
 
       this.isConnected = true
       this.connectionPromise = null
-      this.logger.log(`Connected to OBS at ${address}:${port}`)
+      this.logger.info(`Connected to OBS at ${address}:${port}`)
 
       return this.obs
     } catch (error) {
-      this.logger.error(`Failed to connect to OBS at ${address}:${port}`, error)
+      this.logger.error(`Failed to connect to OBS at ${address}:${port}`, { error })
       this.isConnected = false
       this.obs = null
       this.connectionPromise = null
@@ -82,12 +89,12 @@ export class OBSService implements OnModuleInit {
    * Reconnect to OBS WebSocket
    */
   async reconnect(): Promise<OBSWebSocket> {
-    this.logger.log('Reconnecting to OBS...')
+    this.logger.info('Reconnecting to OBS...')
     if (this.obs) {
       try {
         await this.obs.disconnect()
       } catch (error) {
-        this.logger.warn('Error disconnecting from OBS', error)
+        this.logger.warn('Error disconnecting from OBS', { error })
       }
     }
     this.isConnected = false
@@ -108,7 +115,7 @@ export class OBSService implements OnModuleInit {
       try {
         return await this.connect()
       } catch (error) {
-        this.logger.error('Failed to reconnect to OBS', error)
+        this.logger.error('Failed to reconnect to OBS', { error })
         throw new Error(
           'OBS WebSocket connection failed. Please ensure OBS Studio is running and WebSocket server is enabled.'
         )
@@ -131,9 +138,9 @@ export class OBSService implements OnModuleInit {
     if (this.obs) {
       try {
         await this.obs.disconnect()
-        this.logger.log('Disconnected from OBS')
+        this.logger.info('Disconnected from OBS')
       } catch (error) {
-        this.logger.warn('Error disconnecting from OBS', error)
+        this.logger.warn('Error disconnecting from OBS', { error })
       }
     }
     this.isConnected = false

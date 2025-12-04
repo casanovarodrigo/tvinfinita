@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { OBSService } from '../OBS.service'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../../infra/logging/services/logger.service'
 
 /**
  * Output interface
@@ -23,9 +25,14 @@ export interface IOutput {
  */
 @Injectable()
 export class OutputService {
-  private readonly logger = new Logger(OutputService.name)
+  private readonly logger: winston.Logger
 
-  constructor(private readonly obsService: OBSService) {}
+  constructor(
+    private readonly obsService: OBSService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(OutputService.name)
+  }
 
   /**
    * Get list of all outputs
@@ -37,7 +44,7 @@ export class OutputService {
       const result = await obs.call('GetOutputList')
       return (result.outputs as unknown as IOutput[]) || []
     } catch (error) {
-      this.logger.error('Error getting outputs list', error)
+      this.logger.error('Error getting outputs list', { error })
       throw error
     }
   }

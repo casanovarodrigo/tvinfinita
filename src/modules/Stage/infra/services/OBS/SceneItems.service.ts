@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { OBSService } from '../OBS.service'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../../infra/logging/services/logger.service'
 
 /**
  * Scene Item Properties interface
@@ -58,9 +60,14 @@ export interface ISceneItem {
  */
 @Injectable()
 export class SceneItemsService {
-  private readonly logger = new Logger(SceneItemsService.name)
+  private readonly logger: winston.Logger
 
-  constructor(private readonly obsService: OBSService) {}
+  constructor(
+    private readonly obsService: OBSService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(SceneItemsService.name)
+  }
 
   /**
    * Get all scene items from a scene
@@ -79,7 +86,7 @@ export class SceneItemsService {
       const result = await obs.call('GetSceneItemList', params)
       return (result.sceneItems as unknown as ISceneItem[]) || []
     } catch (error) {
-      this.logger.error(`Error getting scene items for scene: ${sceneName}`, error)
+      this.logger.error(`Error getting scene items for scene: ${sceneName}`, { error })
       throw error
     }
   }
@@ -136,7 +143,7 @@ export class SceneItemsService {
         sourceHeight: transform?.sourceHeight,
       }
     } catch (error) {
-      this.logger.error(`Error getting properties for scene item: ${itemId}`, error)
+      this.logger.error(`Error getting properties for scene item: ${itemId}`, { error })
       throw error
     }
   }
@@ -226,9 +233,9 @@ export class SceneItemsService {
 
       await obs.call('SetSceneItemTransform', params)
 
-      this.logger.log(`Updated properties for scene item: ${sceneItemId}`)
+      this.logger.info(`Updated properties for scene item: ${sceneItemId}`)
     } catch (error) {
-      this.logger.error(`Error setting properties for scene item: ${itemId}`, error)
+      this.logger.error(`Error setting properties for scene item: ${itemId}`, { error })
       throw error
     }
   }
@@ -285,9 +292,9 @@ export class SceneItemsService {
 
       await obs.call('RemoveSceneItem', params)
 
-      this.logger.log(`Removed scene item: ${sceneItemId} from scene: ${sceneName || 'current'}`)
+      this.logger.info(`Removed scene item: ${sceneItemId} from scene: ${sceneName || 'current'}`)
     } catch (error) {
-      this.logger.error(`Error removing scene item: ${itemId}`, error)
+      this.logger.error(`Error removing scene item: ${itemId}`, { error })
       throw error
     }
   }

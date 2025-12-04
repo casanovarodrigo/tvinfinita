@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { OBSService } from '../OBS.service'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../../infra/logging/services/logger.service'
 
 /**
  * Media State interface
@@ -18,9 +20,14 @@ export interface IMediaState {
  */
 @Injectable()
 export class MediaControlService {
-  private readonly logger = new Logger(MediaControlService.name)
+  private readonly logger: winston.Logger
 
-  constructor(private readonly obsService: OBSService) {}
+  constructor(
+    private readonly obsService: OBSService,
+    private readonly loggerService: LoggerService
+  ) {
+    this.logger = this.loggerService.getDirectorLogger(MediaControlService.name)
+  }
 
   /**
    * Play media source
@@ -33,9 +40,9 @@ export class MediaControlService {
         inputName: sourceName,
         mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART',
       })
-      this.logger.log(`Playing media source: ${sourceName}`)
+      this.logger.info(`Playing media source: ${sourceName}`)
     } catch (error) {
-      this.logger.error(`Error playing media source: ${sourceName}`, error)
+      this.logger.error(`Error playing media source: ${sourceName}`, { error })
       throw error
     }
   }
@@ -51,9 +58,9 @@ export class MediaControlService {
         inputName: sourceName,
         mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PAUSE',
       })
-      this.logger.log(`Paused media source: ${sourceName}`)
+      this.logger.info(`Paused media source: ${sourceName}`)
     } catch (error) {
-      this.logger.error(`Error pausing media source: ${sourceName}`, error)
+      this.logger.error(`Error pausing media source: ${sourceName}`, { error })
       throw error
     }
   }
@@ -69,9 +76,9 @@ export class MediaControlService {
         inputName: sourceName,
         mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART',
       })
-      this.logger.log(`Restarted media source: ${sourceName}`)
+      this.logger.info(`Restarted media source: ${sourceName}`)
     } catch (error) {
-      this.logger.error(`Error restarting media source: ${sourceName}`, error)
+      this.logger.error(`Error restarting media source: ${sourceName}`, { error })
       throw error
     }
   }
@@ -87,9 +94,9 @@ export class MediaControlService {
         inputName: sourceName,
         mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP',
       })
-      this.logger.log(`Stopped media source: ${sourceName}`)
+      this.logger.info(`Stopped media source: ${sourceName}`)
     } catch (error) {
-      this.logger.error(`Error stopping media source: ${sourceName}`, error)
+      this.logger.error(`Error stopping media source: ${sourceName}`, { error })
       throw error
     }
   }
@@ -108,9 +115,9 @@ export class MediaControlService {
       })
       // Note: OBS v5 doesn't have direct scrub, may need to use SetMediaTime if available
       // For now, restart is used as fallback
-      this.logger.log(`Scrubbed media source: ${sourceName} to ${time}ms`)
+      this.logger.info(`Scrubbed media source: ${sourceName} to ${time}ms`)
     } catch (error) {
-      this.logger.error(`Error scrubbing media source: ${sourceName}`, error)
+      this.logger.error(`Error scrubbing media source: ${sourceName}`, { error })
       throw error
     }
   }
@@ -132,7 +139,7 @@ export class MediaControlService {
         mediaCursor: result.mediaCursor,
       }
     } catch (error) {
-      this.logger.error(`Error getting media state for source: ${sourceName}`, error)
+      this.logger.error(`Error getting media state for source: ${sourceName}`, { error })
       throw error
     }
   }

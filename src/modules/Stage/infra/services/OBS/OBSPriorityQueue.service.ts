@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
+import * as winston from 'winston'
+import { LoggerService } from '../../../../../infra/logging/services/logger.service'
 
 /**
  * OBS Method Types enum
@@ -98,12 +100,13 @@ const methodTypeMetadata: Record<OBSMethodType, { priority: number; cooldown: nu
  */
 @Injectable()
 export class OBSPriorityQueueService {
-  private readonly logger = new Logger(OBSPriorityQueueService.name)
+  private readonly logger: winston.Logger
   private queues: Map<OBSMethodType, IOBSCommand[]>
   private processing: boolean = false
   private lastProcessedTime: Date | null = null
 
-  constructor() {
+  constructor(private readonly loggerService: LoggerService) {
+    this.logger = this.loggerService.getDirectorLogger(OBSPriorityQueueService.name)
     this.queues = new Map()
     // Initialize queues for each method type
     Object.values(OBSMethodType).forEach((methodType) => {
@@ -140,7 +143,7 @@ export class OBSPriorityQueueService {
     // Don't await - let it process in background
     if (!this.processing) {
       this.processQueue().catch((error) => {
-        this.logger.error('Error in queue processing', error)
+        this.logger.error('Error in queue processing', { error })
       })
     }
   }
@@ -182,7 +185,7 @@ export class OBSPriorityQueueService {
           this.lastProcessedTime = new Date()
           this.logger.debug(`Executed command: ${nextCommand.methodType}`)
         } catch (error) {
-          this.logger.error(`Error executing command: ${nextCommand.methodType}`, error)
+          this.logger.error(`Error executing command: ${nextCommand.methodType}`, { error })
           // Continue with next command even if one fails
         }
       }
@@ -251,7 +254,7 @@ export class OBSPriorityQueueService {
     for (const queue of this.queues.values()) {
       queue.length = 0
     }
-    this.logger.log('Cleared all OBS priority queues')
+    this.logger.info('Cleared all OBS priority queues')
   }
 
   /**

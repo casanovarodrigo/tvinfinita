@@ -41,3 +41,6 @@ lerna-debug.log*
 
 # temporary legacy project inside for easier cursor access
 /legacy-project
+
+# Old Cursor folder
+.cursor

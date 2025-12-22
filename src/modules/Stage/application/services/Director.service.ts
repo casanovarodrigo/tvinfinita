@@ -29,7 +29,8 @@ export class DirectorService {
   }
 
   // State management
-  private currentSchedule: Schedule | null = null
+  private schedulesMap: Map<string, Schedule> = new Map()
+  private currentScheduleId: string | null = null
   private stages: Stage[] = []
   private currentStage: Stage | null = null
   private isStreaming = false
@@ -68,7 +69,8 @@ export class DirectorService {
     }
 
     try {
-      this.currentSchedule = schedule
+      // Store schedule in map and set as current
+      this.setCurrentSchedule(schedule)
 
       // Start the schedule
       const startedStage = await this.startScheduleUseCase.execute(schedule, this.stages)
@@ -76,6 +78,7 @@ export class DirectorService {
       if (startedStage) {
         this.currentStage = startedStage
         this.isStreaming = true
+        // currentScheduleId is already set by setCurrentSchedule()
         this.logger.info(`Stream started on stage ${startedStage.stageNumber}`)
       } else {
         throw new Error('Failed to start schedule - no available stage or media')
@@ -91,7 +94,8 @@ export class DirectorService {
    * This is used after renderNextMedia has been called
    */
   async startSchedule(): Promise<void> {
-    if (!this.currentSchedule) {
+    const currentSchedule = this.getCurrentSchedule()
+    if (!currentSchedule) {
       throw new Error('No schedule available to start')
     }
 
@@ -101,11 +105,15 @@ export class DirectorService {
     }
 
     try {
-      const startedStage = await this.startScheduleUseCase.execute(this.currentSchedule, this.stages)
+      const startedStage = await this.startScheduleUseCase.execute(currentSchedule, this.stages)
 
       if (startedStage) {
         this.currentStage = startedStage
         this.isStreaming = true
+        // Ensure currentScheduleId is set (should already be set, but ensure it)
+        if (!this.currentScheduleId) {
+          this.currentScheduleId = currentSchedule.id.value
+        }
         this.logger.info(`Schedule started on stage ${startedStage.stageNumber}`)
       } else {
         throw new Error('Failed to start schedule - no available stage or media')
@@ -138,7 +146,8 @@ export class DirectorService {
       StageManagerService.clearStageQueue()
 
       this.isStreaming = false
-      this.currentSchedule = null
+      // Clear current schedule ID (schedules remain in map for history)
+      this.currentScheduleId = null
 
       this.logger.info('Stream stopped')
     } catch (error) {
@@ -152,13 +161,14 @@ export class DirectorService {
    * Handles transition to next media in schedule
    */
   async nextMedia(): Promise<{ success: boolean; hasMoreMedia: boolean }> {
-    if (!this.isStreaming || !this.currentSchedule || !this.currentStage) {
+    const currentSchedule = this.getCurrentSchedule()
+    if (!this.isStreaming || !currentSchedule || !this.currentStage) {
       this.logger.warn('Cannot move to next media - stream not active')
       return { success: false, hasMoreMedia: false }
     }
 
     try {
-      const result = await this.nextMediaUseCase.execute(this.currentSchedule, this.currentStage, this.stages)
+      const result = await this.nextMediaUseCase.execute(currentSchedule, this.currentStage, this.stages)
 
       if (result.nextStage) {
         this.currentStage = result.nextStage
@@ -180,13 +190,14 @@ export class DirectorService {
    * Prepares media for playback without starting it
    */
   async renderNextMedia(): Promise<Stage | null> {
-    if (!this.currentSchedule) {
+    const currentSchedule = this.getCurrentSchedule()
+    if (!currentSchedule) {
       this.logger.warn('No active schedule to render media from')
       return null
     }
 
     try {
-      const stage = await this.renderNextScheduledMediaUseCase.execute(this.currentSchedule, this.stages)
+      const stage = await this.renderNextScheduledMediaUseCase.execute(currentSchedule, this.stages)
 
       if (stage) {
         this.logger.info(`Rendered next media on stage ${stage.stageNumber}`)
@@ -209,30 +220,47 @@ export class DirectorService {
     hasSchedule: boolean
     scheduleHasMedia: boolean
   } {
+    const currentSchedule = this.getCurrentSchedule()
     return {
       isStreaming: this.isStreaming,
       currentStage: this.currentStage,
       stages: [...this.stages],
-      hasSchedule: this.currentSchedule !== null,
+      hasSchedule: currentSchedule !== null,
       scheduleHasMedia:
-        this.currentSchedule !== null && !MediaSchedulerService.isScheduleToPlayEmpty(this.currentSchedule),
+        currentSchedule !== null && !MediaSchedulerService.isScheduleToPlayEmpty(currentSchedule),
     }
   }
 
   /**
-   * Get current schedule
+   * Get current schedule (the one currently playing in OBS)
    */
   getCurrentSchedule(): Schedule | null {
-    return this.currentSchedule
+    if (!this.currentScheduleId) {
+      return null
+    }
+    return this.schedulesMap.get(this.currentScheduleId) ?? null
   }
 
   /**
    * Set current schedule
+   * Stores schedule in map and sets it as the active schedule
    */
   setCurrentSchedule(schedule: Schedule): void {
-    this.currentSchedule = schedule
+    this.schedulesMap.set(schedule.id.value, schedule)
+    this.currentScheduleId = schedule.id.value
     this.logger.info('Current schedule updated')
   }
+
+  /**
+   * Get schedule by ID
+   * @param id Schedule ID
+   * @returns Schedule or null if not found
+   */
+  getScheduleById(id: string): Schedule | null {
+    return this.schedulesMap.get(id) ?? null
+  }
+
+  // TODO: Future - addSchedule(schedule: Schedule) method to store schedule in map without setting as current
 
   /**
    * Get all stages
